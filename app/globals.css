@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 38 47% 96%;
+  --foreground: 220 17% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 17% 14%;
+  --muted: 40 33% 93%;
+  --muted-foreground: 31 8% 57%;
+  --primary: 11 72% 60%;
+  --primary-foreground: 0 0% 100%;
+  --border: 40 18% 88%;
+  --input: 40 18% 88%;
+  --ring: 11 72% 60%;
+  --positive: 128 19% 56%;
+  --mist: 216 31% 66%;
+  --radius: 12px;
+}
+
+.dark {
+  --background: 38 47% 96%;
+  --foreground: 220 17% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 17% 14%;
+  --muted: 40 33% 93%;
+  --muted-foreground: 31 8% 57%;
+  --primary: 11 72% 60%;
+  --primary-foreground: 0 0% 100%;
+  --border: 40 18% 88%;
+  --input: 40 18% 88%;
+  --ring: 11 72% 60%;
+  --positive: 128 19% 56%;
+  --mist: 216 31% 66%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: #faf7f1;
+  color: hsl(var(--foreground));
+  font-family: PingFang SC, MiSans, Microsoft YaHei, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+code,
+kbd,
+samp,
+.font-mono {
+  font-family: "JetBrains Mono", "IBM Plex Mono", "SFMono-Regular", Consolas,
+    monospace;
+}
+
+::selection {
+  background: #f5d3ca;
+  color: #1e222a;
+}
+
+.dnd-dragging {
+  user-select: none;
+  cursor: grabbing;
+}

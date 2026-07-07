@@ -1,0 +1,120 @@
+# Console · 个人画像 RAG + 人生状态 Dashboard
+
+依据 `PRD-个人知识库系统.md` v2.0 开发。开发进度见 [`开发进度.md`](开发进度.md)。
+
+当前范围:**v2 Phase 1–3 已实现**。v1 的创作/情感/健身/感悟/决策/交易日志手动 UI 已按 v2 收敛移除。
+
+## 技术栈
+
+Next.js 15(App Router) · TypeScript · Tailwind CSS · Drizzle ORM · Neon Postgres · JWT(jose) · @dnd-kit · PWA
+
+## 快速开始
+
+```bash
+npm install
+cp .env.example .env
+
+# 1) 生成登录密码哈希,拷贝到 .env 的 AUTH_PASSWORD_HASH
+npm run hash -- 你的明文密码
+
+# 2) 执行迁移和中文检索索引
+npm run db:migrate
+npm run db:trgm
+
+# 3) 导入 demo 数据(来自 console-seed-data.md,可重复执行)
+npm run seed:demo
+
+# 4) 启动
+npm run dev
+```
+
+访问 http://localhost:3000 → 自动跳登录页 → 输入密码进入。
+
+## 环境变量
+
+| 变量 | 说明 |
+|---|---|
+| `DATABASE_URL` | Neon Postgres 连接串(`?sslmode=require`) |
+| `AUTH_PASSWORD_HASH` | 登录密码的 bcrypt 哈希,用 `npm run hash` 生成 |
+| `JWT_SECRET` | JWT 签名密钥,`openssl rand -base64 48` |
+| `USER_NAME` | 画像头部展示名 |
+| `GITHUB_BACKUP_TOKEN` | 备份目标私有仓库的 PAT(repo 写权限) |
+| `GITHUB_BACKUP_REPO` | 备份仓库 `owner/repo` |
+| `GITHUB_BACKUP_BRANCH` | 备份分支(默认 `main`) |
+| `CRON_SECRET` | 保护 `/api/cron/backup` 的 Bearer 密钥 |
+
+## v2 功能
+
+- 首页:画像 `status` 当前状态卡、pending proposal 角标、置顶工作事项、工作摘要、持仓摘要、AI 写入动态、备份失败告警
+- 工作:收件箱快速录入、状态流转、想做未做、置顶、组内拖拽、行内编辑、软删除
+- 持仓:按 A 股/美股分组、仓位占比、买入逻辑、观察池、结构图
+- 画像:五层 Markdown、完整版/通用版/自定义分发、一键复制、版本历史、回滚
+- Proposal:REST/write token、粘贴更新块、MCP 三条写入通道,全部需用户 diff 确认
+- Token:read/write token 生成、吊销、最后使用时间
+- MCP:`get_profile` / `propose_profile_update` / `search_entries` / `create_entry`
+- 导入导出:`/api/import` JSON 导入,`/api/export` 全量 Markdown ZIP
+- 备份:Vercel Cron 每日全量 Markdown 快照到 GitHub 私库
+- Demo seed:`npm run seed:demo` 导入 `console-seed-data.md` 对应的工作事项、持仓、画像层和一条 pending proposal
+
+## 目录结构
+
+```text
+app/
+  (app)/
+    dashboard/      # v2 单屏状态首页
+    work/           # 工作台账
+    invest/         # 持仓一览
+    profile/        # 画像、分发、提案、token
+    settings/       # MCP 信息
+  api/
+    auth/           # 登录 / 登出
+    work-items/     # 工作事项 CRUD + reorder
+    holdings/       # 持仓 CRUD
+    context/         # AI 画像 Markdown 分发
+    profile/         # 画像层、提案、粘贴导入、回滚
+    tokens/          # API token 管理
+    search/          # entries + work_items + holdings 中文检索
+    import/ export/  # JSON 导入 / Markdown ZIP 导出
+    mcp/             # JSON-RPC MCP Server
+    cron/backup/     # 每日全量 Markdown 备份
+lib/
+  db/schema.ts       # v2 精简模型
+  auth/              # session + bearer token
+  queries/           # work / invest / profile / search / backup
+  export.ts          # 全量 Markdown 文件导出
+  zip.ts             # 无依赖 ZIP 打包
+```
+
+## 公开 API
+
+| 方法 | 路径 | 权限 | 说明 |
+|---|---|---|---|
+| `GET` | `/api/context?profile=general` | read | 返回纯 Markdown 画像 |
+| `GET` | `/api/export` | read | 下载全量 Markdown ZIP |
+| `GET` | `/api/search?q=关键词` | read | 检索 entries + 工作 + 持仓 |
+| `POST` | `/api/profile/proposals` | write | 创建画像修改提案 |
+| `GET` | `/api/profile/proposals` | write | 查询提案状态 |
+| `POST` | `/api/import` | write | 批量导入 |
+| `POST` | `/api/mcp` | read/write | MCP JSON-RPC |
+
+`/api/import` 示例:
+
+```json
+{
+  "work_items": [{ "name": "整理 Console v2", "status": "inbox", "pinned": true }],
+  "holdings": [{ "market": "us", "symbol": "NVDA", "name": "英伟达", "positionPct": 10 }],
+  "entries": [{ "sectionKey": "ai", "type": "note", "contentMd": "MCP 写入的预留条目" }],
+  "profile_doc": {
+    "core": "核心画像 Markdown",
+    "status": "近期状态 Markdown"
+  }
+}
+```
+
+## 约定
+
+- 全站不做日期、截止、逾期提醒。
+- 中文检索使用 `pg_trgm + GIN + ILIKE`,不用默认 `tsvector`。
+- 所有内容正文以 Markdown 存储,结构化字段独立成列。
+- 所有时间存 UTC,展示按 Asia/Shanghai。
+- 删除均为软删除。
