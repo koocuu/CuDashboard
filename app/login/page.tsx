@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -14,7 +12,6 @@ export default function LoginPage() {
     e.preventDefault();
     if (loading) return;
 
-    // 从表单直接取值,不依赖受控 state(避免个别环境水合异常导致按钮无响应)
     const form = e.currentTarget;
     const password = (
       form.elements.namedItem("password") as HTMLInputElement | null
@@ -35,11 +32,11 @@ export default function LoginPage() {
       });
       if (res.ok) {
         window.location.href = "/dashboard";
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error || "登录失败");
-        setLoading(false);
+        return;
       }
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || "登录失败");
+      setLoading(false);
     } catch {
       setError("网络错误,请重试");
       setLoading(false);
@@ -63,7 +60,7 @@ export default function LoginPage() {
         />
         {error && <p className="text-sm text-muted-foreground">{error}</p>}
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "登录中…" : "登录"}
+          {loading ? "登录中..." : "登录"}
         </Button>
       </form>
     </main>
