@@ -20,9 +20,8 @@ export async function POST(req: NextRequest) {
 
   const status: WorkStatus = WORK_STATUSES.includes(body.status)
     ? body.status
-    : "inbox";
+    : "someday";
 
-  // 新事项放到列表末尾
   const [{ max }] = await db
     .select({ max: sql<number>`coalesce(max(${workItems.sortOrder}), 0)` })
     .from(workItems)

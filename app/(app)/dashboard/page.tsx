@@ -8,15 +8,14 @@ import { LAYER_META } from "@/lib/profile-meta";
 import { latestBackupRun } from "@/lib/queries/backup";
 import { investStats, listHoldings } from "@/lib/queries/invest";
 import { getAllLayers, listProposals } from "@/lib/queries/profile";
-import { listWorkItems, workStats } from "@/lib/queries/work";
+import { listWorkItems } from "@/lib/queries/work";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [work, workItems, invest, holdings, layers, proposals, backup] =
+  const [workItems, invest, holdings, layers, proposals, backup] =
     await Promise.all([
-      workStats().catch(() => null),
       listWorkItems().catch(() => []),
       investStats().catch(() => null),
       listHoldings().catch(() => []),
@@ -184,22 +183,6 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-normal text-muted-foreground">
               工作台账
             </h2>
-            {work && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                进行中{" "}
-                <span className="font-mono text-foreground">
-                  {String(work.in_progress).padStart(2, "0")}
-                </span>{" "}
-                · 等待外部{" "}
-                <span className="font-mono text-foreground">
-                  {String(work.waiting).padStart(2, "0")}
-                </span>{" "}
-                · 想做未做{" "}
-                <span className="font-mono text-foreground">
-                  {String(work.someday).padStart(2, "0")}
-                </span>
-              </p>
-            )}
           </div>
           <WorkBoard initialItems={workItems} showQuickAdd={false} />
         </section>

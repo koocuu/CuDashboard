@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { WorkItem } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+export const WORK_ITEM_CREATED_EVENT = "console:work-item-created";
 
 export function QuickAdd() {
   const router = useRouter();
@@ -18,9 +21,13 @@ export function QuickAdd() {
       const res = await fetch("/api/work-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: text.trim(), status: "inbox" }),
+        body: JSON.stringify({ name: text.trim(), status: "someday" }),
       });
       if (res.ok) {
+        const { item } = (await res.json()) as { item: WorkItem };
+        window.dispatchEvent(
+          new CustomEvent<WorkItem>(WORK_ITEM_CREATED_EVENT, { detail: item }),
+        );
         setText("");
         setDone(true);
         setTimeout(() => setDone(false), 1500);

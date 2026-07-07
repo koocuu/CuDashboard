@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   type DragEndEvent,
@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import type { WorkItem, WorkStatus } from "@/lib/db/schema";
 import { ACTIVE_GROUP_ORDER, STATUS_META } from "@/lib/work-meta";
 import { cn } from "@/lib/utils";
+import { WORK_ITEM_CREATED_EVENT } from "@/components/quick-add";
 import { WorkRow } from "./work-row";
 
 const COMPLETED: WorkStatus[] = ["done", "archived"];
@@ -36,6 +37,22 @@ export function WorkBoard({
   const [newName, setNewName] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
   const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
+  useEffect(() => {
+    function onCreated(event: Event) {
+      const item = (event as CustomEvent<WorkItem>).detail;
+      if (!item?.id) return;
+      setItems((prev) =>
+        prev.some((existing) => existing.id === item.id) ? prev : [...prev, item],
+      );
+    }
+    window.addEventListener(WORK_ITEM_CREATED_EVENT, onCreated);
+    return () => window.removeEventListener(WORK_ITEM_CREATED_EVENT, onCreated);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -57,7 +74,7 @@ export function WorkBoard({
       const res = await fetch("/api/work-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, status: "someday" }),
       });
       if (res.ok) {
         const { item } = await res.json();
