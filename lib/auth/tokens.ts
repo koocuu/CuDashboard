@@ -18,9 +18,10 @@ export function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-async function touchToken(id: number) {
+async function touchToken(id: number, fetched = false) {
+  const now = new Date();
   db.update(apiTokens)
-    .set({ lastUsedAt: new Date() })
+    .set(fetched ? { lastUsedAt: now, lastFetchedAt: now } : { lastUsedAt: now })
     .where(eq(apiTokens.id, id))
     .catch(() => {});
 }
@@ -61,7 +62,7 @@ export async function verifyShareSlug(
   const tok = rows[0];
   if (!tok || tok.scope !== "read") return null;
 
-  touchToken(tok.id);
+  touchToken(tok.id, true);
   return { id: tok.id, scope: tok.scope as TokenScope, name: tok.name };
 }
 

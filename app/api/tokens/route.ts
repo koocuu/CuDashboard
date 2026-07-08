@@ -13,6 +13,7 @@ export async function GET() {
       name: apiTokens.name,
       scope: apiTokens.scope,
       lastUsedAt: apiTokens.lastUsedAt,
+      lastFetchedAt: apiTokens.lastFetchedAt,
       createdAt: apiTokens.createdAt,
       revokedAt: apiTokens.revokedAt,
     })

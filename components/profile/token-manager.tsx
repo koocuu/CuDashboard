@@ -11,6 +11,7 @@ interface TokenRow {
   name: string;
   scope: string;
   lastUsedAt: string | null;
+  lastFetchedAt: string | null;
   createdAt: string;
   revokedAt: string | null;
 }
@@ -64,6 +65,7 @@ export function TokenManager({
             name: data.token.name,
             scope: data.token.scope,
             lastUsedAt: null,
+            lastFetchedAt: null,
             createdAt: new Date().toISOString(),
             revokedAt: null,
           },
@@ -100,7 +102,11 @@ export function TokenManager({
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder={kind === "share" ? "分享页名称(如 Gemini 通用)" : "Token 名称(如 Claude 主力)"}
+          placeholder={
+            kind === "share"
+              ? "分享页名称(如 Gemini 通用)"
+              : "Token 名称(如 Claude 主力)"
+          }
         />
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-md border p-0.5 text-sm">
@@ -210,6 +216,10 @@ export function TokenManager({
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   最后使用 {t.lastUsedAt ? formatDate(t.lastUsedAt) : "从未"}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  最后抓取{" "}
+                  {t.lastFetchedAt ? formatDate(t.lastFetchedAt) : "从未"}
                 </p>
               </div>
               {!revoked && (

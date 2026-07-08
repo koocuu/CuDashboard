@@ -138,6 +138,7 @@ export const apiTokens = pgTable("api_tokens", {
   tokenHash: text("token_hash").notNull(),
   scope: text("scope").notNull().default("read"), // read / write
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

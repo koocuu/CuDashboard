@@ -13,6 +13,7 @@ export default async function TokensPage() {
       name: apiTokens.name,
       scope: apiTokens.scope,
       lastUsedAt: apiTokens.lastUsedAt,
+      lastFetchedAt: apiTokens.lastFetchedAt,
       createdAt: apiTokens.createdAt,
       revokedAt: apiTokens.revokedAt,
     })
@@ -38,6 +39,7 @@ export default async function TokensPage() {
         initialTokens={tokens.map((t) => ({
           ...t,
           lastUsedAt: t.lastUsedAt?.toISOString() ?? null,
+          lastFetchedAt: t.lastFetchedAt?.toISOString() ?? null,
           createdAt: t.createdAt.toISOString(),
           revokedAt: t.revokedAt?.toISOString() ?? null,
         }))}
