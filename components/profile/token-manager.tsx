@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Trash2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Check, Copy, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { cn, formatDate } from "@/lib/utils";
 
 interface TokenRow {
   id: number;
@@ -16,6 +15,14 @@ interface TokenRow {
   revokedAt: string | null;
 }
 
+interface GeneratedSecret {
+  plain: string;
+  kind: "api" | "share";
+  contextUrl: string | null;
+  shareUrl: string | null;
+  fullShareUrl: string | null;
+}
+
 export function TokenManager({
   initialTokens,
 }: {
@@ -24,8 +31,9 @@ export function TokenManager({
   const [tokens, setTokens] = useState<TokenRow[]>(initialTokens);
   const [name, setName] = useState("");
   const [scope, setScope] = useState<"read" | "write">("read");
-  const [newPlain, setNewPlain] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [kind, setKind] = useState<"api" | "share">("share");
+  const [generated, setGenerated] = useState<GeneratedSecret | null>(null);
+  const [copied, setCopied] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function create() {
@@ -35,11 +43,21 @@ export function TokenManager({
       const res = await fetch("/api/tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), scope }),
+        body: JSON.stringify({
+          name: name.trim(),
+          scope,
+          kind,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
-        setNewPlain(data.plain);
+        setGenerated({
+          plain: data.plain,
+          kind: data.kind,
+          contextUrl: data.contextUrl,
+          shareUrl: data.shareUrl,
+          fullShareUrl: data.fullShareUrl,
+        });
         setTokens((prev) => [
           {
             id: data.token.id,
@@ -59,7 +77,7 @@ export function TokenManager({
   }
 
   async function revoke(id: number) {
-    if (!confirm("确认吊销此 token?")) return;
+    if (!confirm("确认吊销此 token / 分享页?")) return;
     const res = await fetch(`/api/tokens/${id}`, { method: "DELETE" });
     if (res.ok) {
       setTokens((prev) =>
@@ -70,67 +88,105 @@ export function TokenManager({
     }
   }
 
-  async function copyPlain() {
-    if (!newPlain) return;
-    await navigator.clipboard.writeText(newPlain).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+  async function copy(value: string, key: string) {
+    await navigator.clipboard.writeText(value).catch(() => {});
+    setCopied(key);
+    setTimeout(() => setCopied(""), 1800);
   }
 
   return (
     <div className="space-y-4">
-      {/* 新建 */}
-      <div className="space-y-2 rounded-lg border bg-card p-3">
+      <div className="space-y-3 rounded-lg border bg-card p-3">
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Token 名称(如 Claude主力)"
+          placeholder={kind === "share" ? "分享页名称(如 Gemini 通用)" : "Token 名称(如 Claude 主力)"}
         />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-md border p-0.5 text-sm">
-            {(["read", "write"] as const).map((s) => (
+            {(["share", "api"] as const).map((item) => (
               <button
-                key={s}
-                onClick={() => setScope(s)}
+                key={item}
+                onClick={() => setKind(item)}
                 className={cn(
                   "rounded px-3 py-1",
-                  scope === s
+                  kind === item
                     ? "bg-muted text-foreground"
                     : "text-muted-foreground",
                 )}
               >
-                {s}
+                {item === "share" ? "分享页" : "API token"}
               </button>
             ))}
           </div>
+          {kind === "api" && (
+            <div className="flex rounded-md border p-0.5 text-sm">
+              {(["read", "write"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setScope(s)}
+                  className={cn(
+                    "rounded px-3 py-1",
+                    scope === s
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
           <Button size="sm" onClick={create} disabled={busy || !name.trim()}>
             生成
           </Button>
         </div>
       </div>
 
-      {/* 新 token 明文(仅此一次) */}
-      {newPlain && (
-        <div className="space-y-2 rounded-md border border-border bg-card p-3">
+      {generated && (
+        <div className="space-y-3 rounded-md border border-border bg-card p-3">
           <p className="text-xs font-medium text-positive">
-            请立即复制,页面刷新后不再显示:
+            请立即复制。页面刷新后不再显示明文。
           </p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 overflow-x-auto rounded bg-muted px-2 py-1 text-xs">
-              {newPlain}
-            </code>
-            <Button size="icon" variant="outline" onClick={copyPlain}>
-              {copied ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <Copy className="h-4 w-4" />
+          {generated.kind === "share" ? (
+            <>
+              <CopyRow
+                label="通用分享页"
+                value={generated.shareUrl ?? ""}
+                copied={copied === "share"}
+                onCopy={() => copy(generated.shareUrl ?? "", "share")}
+              />
+              <CopyRow
+                label="完整分享页"
+                value={generated.fullShareUrl ?? ""}
+                copied={copied === "full"}
+                onCopy={() => copy(generated.fullShareUrl ?? "", "full")}
+              />
+              <p className="text-xs text-muted-foreground">
+                通用版不含 private 层;完整版包含 private 层,只发给高度信任的 AI。
+              </p>
+            </>
+          ) : (
+            <>
+              <CopyRow
+                label="API token"
+                value={generated.plain}
+                copied={copied === "plain"}
+                onCopy={() => copy(generated.plain, "plain")}
+              />
+              {generated.contextUrl && (
+                <CopyRow
+                  label="Context API"
+                  value={generated.contextUrl}
+                  copied={copied === "context"}
+                  onCopy={() => copy(generated.contextUrl ?? "", "context")}
+                />
               )}
-            </Button>
-          </div>
+            </>
+          )}
         </div>
       )}
 
-      {/* 列表 */}
       <div className="space-y-2">
         {tokens.map((t) => {
           const revoked = !!t.revokedAt;
@@ -153,7 +209,7 @@ export function TokenManager({
                   )}
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  最后使用:{t.lastUsedAt ? formatDate(t.lastUsedAt) : "从未"}
+                  最后使用 {t.lastUsedAt ? formatDate(t.lastUsedAt) : "从未"}
                 </p>
               </div>
               {!revoked && (
@@ -173,6 +229,32 @@ export function TokenManager({
             还没有 token。
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CopyRow({
+  label,
+  value,
+  copied,
+  onCopy,
+}: {
+  label: string;
+  value: string;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 overflow-x-auto rounded bg-muted px-2 py-1 text-xs">
+          {value}
+        </code>
+        <Button size="icon" variant="outline" onClick={onCopy}>
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+        </Button>
       </div>
     </div>
   );

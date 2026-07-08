@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { apiTokens } from "@/lib/db/schema";
-import { generateToken, hashToken } from "@/lib/auth/tokens";
+import { generateShareSlug, generateToken, hashToken } from "@/lib/auth/tokens";
 
 export const runtime = "nodejs";
 
-/** GET /api/tokens:列出所有 token(不含明文)。 */
 export async function GET() {
   const rows = await db
     .select({
@@ -22,23 +21,33 @@ export async function GET() {
   return NextResponse.json({ tokens: rows });
 }
 
-/** POST /api/tokens { name, scope }:生成新 token,返回明文(仅此一次)。 */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const name = typeof body.name === "string" ? body.name.trim() : "";
-  const scope = body.scope === "write" ? "write" : "read";
+  const kind = body.kind === "share" ? "share" : "api";
+  const scope = kind === "share" ? "read" : body.scope === "write" ? "write" : "read";
+
   if (!name) {
     return NextResponse.json({ error: "名称不能为空" }, { status: 400 });
   }
 
-  const plain = generateToken();
+  const plain = kind === "share" ? generateShareSlug() : generateToken();
   const [tok] = await db
     .insert(apiTokens)
     .values({ name, scope, tokenHash: hashToken(plain) })
     .returning();
 
+  const origin = new URL(req.url).origin;
   return NextResponse.json(
-    { token: { id: tok.id, name: tok.name, scope: tok.scope }, plain },
+    {
+      token: { id: tok.id, name: tok.name, scope: tok.scope },
+      plain,
+      kind,
+      shareUrl: kind === "share" ? `${origin}/c/${plain}` : null,
+      fullShareUrl: kind === "share" ? `${origin}/c/${plain}/full` : null,
+      contextUrl:
+        kind === "api" ? `${origin}/api/context?token=${plain}&profile=general` : null,
+    },
     { status: 201 },
   );
 }

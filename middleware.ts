@@ -6,7 +6,7 @@ const PUBLIC_PATHS = ["/login", "/api/auth/login"];
 
 // 备份 cron 由 CRON_SECRET 保护;公开 AI API 由 Bearer token 自校验,均不走 session
 // 前缀匹配:整个子树都放行
-const BYPASS_PREFIXES = ["/api/cron", "/api/context", "/api/export", "/api/import", "/api/search", "/api/mcp"];
+const BYPASS_PREFIXES = ["/c", "/api/cron", "/api/context", "/api/export", "/api/import", "/api/search", "/api/mcp"];
 // 精确匹配:仅该路径放行(子路径如 /api/profile/proposals/[id] 仍需 session)
 const BYPASS_EXACT = ["/api/profile/proposals"];
 
