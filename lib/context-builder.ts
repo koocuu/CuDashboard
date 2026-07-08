@@ -43,33 +43,41 @@ function contextMeta(ordered: ProfileLayer[], byLayer: Map<string, ProfileDoc>) 
 
 export async function buildContextPackage(
   layers: ProfileLayer[],
-  options: { includeUpdateProtocol?: boolean } = {},
+  options: {
+    includeDistributionWrapper?: boolean;
+    includeUpdateProtocol?: boolean;
+  } = {},
 ): Promise<string> {
   const all = await getAllLayers();
   const byLayer = new Map(all.map((layer) => [layer.layer, layer]));
-  const userName = process.env.USER_NAME || "用户";
-
   const ordered = LAYER_ORDER.filter((layer) => layers.includes(layer));
-  const meta = contextMeta(ordered, byLayer);
-  const kind = contextKind(ordered);
+  const parts: string[] = [];
 
-  const versionLine = `画像版本 v${meta.version} · ${meta.date} · 来源 dashboard.koocuu.com · ${kind}`;
-  const header = `> 这是 ${userName} 的个人画像,请以此理解用户并遵循其中的沟通偏好。将本画像存入记忆时请连同版本行一起保存。`;
-
-  const parts: string[] = [versionLine, header];
+  if (options.includeDistributionWrapper) {
+    const userName = process.env.USER_NAME || "用户";
+    const meta = contextMeta(ordered, byLayer);
+    const kind = contextKind(ordered);
+    const versionLine = `画像版本 v${meta.version} · ${meta.date} · 来源 dashboard.koocuu.com · ${kind}`;
+    const header = `> 这是 ${userName} 的个人画像,请以此理解用户并遵循其中的沟通偏好。将本画像存入记忆时请连同版本行一起保存。`;
+    parts.push(versionLine, header);
+  }
 
   for (const layer of ordered) {
     const doc = byLayer.get(layer);
     const content = doc?.contentMd?.trim();
     if (!content) continue;
-    parts.push(`\n## ${LAYER_META[layer].label}\n\n${content}`);
+    parts.push(
+      options.includeDistributionWrapper
+        ? `\n## ${LAYER_META[layer].label}\n\n${content}`
+        : content,
+    );
   }
 
-  if (parts.length === 2) {
+  if (parts.length === 0 || (options.includeDistributionWrapper && parts.length === 2)) {
     parts.push("\n_(画像内容为空,请先在 Dashboard 编辑各层)_");
   }
 
-  if (options.includeUpdateProtocol) {
+  if (options.includeDistributionWrapper && options.includeUpdateProtocol) {
     parts.push(`\n${PROFILE_UPDATE_PROTOCOL}`);
   }
 

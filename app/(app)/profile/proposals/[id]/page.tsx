@@ -6,6 +6,7 @@ import { profileProposals } from "@/lib/db/schema";
 import { getLayer } from "@/lib/queries/profile";
 import { LAYER_META } from "@/lib/profile-meta";
 import { lineDiff } from "@/lib/diff";
+import { CLEANUP_NOTE } from "@/lib/profile-content-cleaner";
 import type { ProfileLayer } from "@/lib/db/schema";
 import { ProposalActions } from "@/components/profile/proposal-actions";
 
@@ -31,6 +32,7 @@ export default async function ProposalDetail({
   const current = await getLayer(proposal.layer as ProfileLayer);
   const diff = lineDiff(current, proposal.proposedContentMd);
   const pending = proposal.status === "pending";
+  const cleanedDistributionWrapper = proposal.diffSummary.includes(CLEANUP_NOTE);
 
   return (
     <div className="space-y-4">
@@ -49,6 +51,12 @@ export default async function ProposalDetail({
           {proposal.sourceName ? ` (${proposal.sourceName})` : ""}
         </p>
       </div>
+
+      {cleanedDistributionWrapper && (
+        <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+          已自动清理分发包装:版本戳、使用说明或渲染层标题未写入提案正文。
+        </p>
+      )}
 
       {/* diff 视图 */}
       <div className="overflow-hidden rounded-lg border bg-card font-mono text-xs">

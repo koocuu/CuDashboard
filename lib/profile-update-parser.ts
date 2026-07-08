@@ -1,10 +1,12 @@
 import { PROFILE_LAYERS, type ProfileLayer } from "@/lib/db/schema";
+import { cleanDistributedProfileContent } from "@/lib/profile-content-cleaner";
 import { PROFILE_UPDATE_TEMPLATE } from "@/lib/profile-update-protocol";
 
 export interface ParsedUpdate {
   layer: ProfileLayer;
   summary: string;
   content: string;
+  distributionWrapperCleaned: boolean;
 }
 
 export type ParseResult =
@@ -85,14 +87,22 @@ export function parseUpdateBlock(raw: string): ParseResult {
     };
   }
 
-  const content = contentPart.trim();
+  const cleaned = cleanDistributedProfileContent(contentPart, {
+    layer: layer as ProfileLayer,
+  });
+  const content = cleaned.content;
   if (!content) {
     return { ok: false, error: "正文内容为空" };
   }
 
   return {
     ok: true,
-    update: { layer: layer as ProfileLayer, summary, content },
+    update: {
+      layer: layer as ProfileLayer,
+      summary,
+      content,
+      distributionWrapperCleaned: cleaned.cleaned,
+    },
   };
 }
 

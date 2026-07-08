@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     url.searchParams.get("layers"),
   );
   const markdown = await buildContextPackage(layers, {
+    includeDistributionWrapper: true,
     includeUpdateProtocol: true,
   });
   return NextResponse.json({ markdown });

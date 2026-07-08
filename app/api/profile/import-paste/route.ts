@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
     summary: parsed.update.summary,
     source: "paste",
     sourceName: "粘贴导入",
+    distributionWrapperCleaned: parsed.update.distributionWrapperCleaned,
   });
 
   return NextResponse.json({ proposal }, { status: 201 });
