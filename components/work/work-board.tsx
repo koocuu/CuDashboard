@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   DndContext,
   type DragEndEvent,
+  type DragStartEvent,
   PointerSensor,
   TouchSensor,
   closestCenter,
+  useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -25,6 +27,40 @@ import { WORK_ITEM_CREATED_EVENT } from "@/components/quick-add";
 import { WorkRow } from "./work-row";
 
 const COMPLETED: WorkStatus[] = ["done"];
+const DROP_PREFIX = "work-status:";
+
+function statusDropId(status: WorkStatus) {
+  return `${DROP_PREFIX}${status}`;
+}
+
+function statusFromDropId(id: string | number): WorkStatus | null {
+  if (typeof id !== "string" || !id.startsWith(DROP_PREFIX)) return null;
+  const status = id.slice(DROP_PREFIX.length);
+  return STATUS_META[status as WorkStatus]
+    ? (status as WorkStatus)
+    : null;
+}
+
+function itemStatus(item: WorkItem): WorkStatus {
+  return item.status as WorkStatus;
+}
+
+function statusOrderIndex(status: WorkStatus) {
+  const order = [...ACTIVE_GROUP_ORDER, "done" as WorkStatus];
+  const index = order.indexOf(status);
+  return index === -1 ? order.length : index;
+}
+
+function insertIndexForStatus(items: WorkItem[], status: WorkStatus) {
+  const lastInTarget = items.findLastIndex((item) => itemStatus(item) === status);
+  if (lastInTarget !== -1) return lastInTarget + 1;
+
+  const targetOrder = statusOrderIndex(status);
+  const nextGroup = items.findIndex(
+    (item) => statusOrderIndex(itemStatus(item)) > targetOrder,
+  );
+  return nextGroup === -1 ? items.length : nextGroup;
+}
 
 export function WorkBoard({
   initialItems,
@@ -37,6 +73,7 @@ export function WorkBoard({
   const [newName, setNewName] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [draggingId, setDraggingId] = useState<number | null>(null);
 
   useEffect(() => {
     setItems(initialItems);
@@ -111,19 +148,68 @@ export function WorkBoard({
     if (!res.ok) setItems(prev);
   }
 
-  function onDragEnd(e: DragEndEvent) {
-    const { active: a, over } = e;
-    if (!over || a.id === over.id) return;
-    const oldIndex = items.findIndex((i) => i.id === a.id);
-    const newIndex = items.findIndex((i) => i.id === over.id);
-    if (oldIndex < 0 || newIndex < 0) return;
-    const next = arrayMove(items, oldIndex, newIndex);
-    setItems(next);
-    fetch("/api/work-items/reorder", {
+  async function persistOrder(next: WorkItem[], prev: WorkItem[]) {
+    const res = await fetch("/api/work-items/reorder", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: next.map((i) => i.id) }),
+      body: JSON.stringify({
+        items: next.map((item) => ({
+          id: item.id,
+          status: item.status,
+        })),
+      }),
     });
+    if (!res.ok) setItems(prev);
+  }
+
+  function onDragStart(e: DragStartEvent) {
+    const id = Number(e.active.id);
+    setDraggingId(Number.isInteger(id) ? id : null);
+  }
+
+  function onDragEnd(e: DragEndEvent) {
+    setDraggingId(null);
+    const { active: a, over } = e;
+    if (!over) return;
+    if (a.id === over.id) return;
+
+    const activeId = Number(a.id);
+    const activeItem = items.find((item) => item.id === activeId);
+    if (!activeItem) return;
+
+    const overDropStatus = statusFromDropId(over.id);
+    const overItem = items.find((item) => item.id === Number(over.id));
+    const targetStatus = overDropStatus ?? (overItem ? itemStatus(overItem) : null);
+    if (!targetStatus) return;
+
+    const prev = items;
+    const oldIndex = items.findIndex((i) => i.id === activeId);
+    let next: WorkItem[];
+
+    if (overItem && itemStatus(activeItem) === targetStatus) {
+      const newIndex = items.findIndex((i) => i.id === overItem.id);
+      if (oldIndex < 0 || newIndex < 0) return;
+      next = arrayMove(items, oldIndex, newIndex);
+    } else {
+      const updatedActive = { ...activeItem, status: targetStatus };
+      const withoutActive = items.filter((i) => i.id !== activeId);
+      const overIndex = overItem
+        ? withoutActive.findIndex((item) => item.id === overItem.id)
+        : -1;
+      const insertIndex =
+        overIndex === -1
+          ? insertIndexForStatus(withoutActive, targetStatus)
+          : overIndex;
+      next = [...withoutActive];
+      next.splice(insertIndex, 0, updatedActive);
+    }
+
+    setItems(next);
+    void persistOrder(next, prev);
+  }
+
+  function onDragCancel() {
+    setDraggingId(null);
   }
 
   return (
@@ -145,15 +231,20 @@ export function WorkBoard({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        onDragStart={onDragStart}
         onDragEnd={onDragEnd}
+        onDragCancel={onDragCancel}
       >
         {ACTIVE_GROUP_ORDER.map((status) => {
           const group = active
             .filter((item) => item.status === status)
             .sort((a, b) => Number(b.pinned) - Number(a.pinned));
-          if (group.length === 0) return null;
+          if (group.length === 0 && draggingId === null) return null;
           return (
-            <section key={status} className="space-y-1.5">
+            <WorkGroupSection
+              key={status}
+              status={status}
+            >
               <h2 className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
                 <span
                   className={cn("h-1.5 w-1.5 rounded-full", STATUS_META[status].dot)}
@@ -181,9 +272,14 @@ export function WorkBoard({
                       onDelete={deleteItem}
                     />
                   ))}
+                  {group.length === 0 && (
+                    <p className="rounded-lg border border-dashed py-3 text-center text-xs text-muted-foreground/70">
+                      拖到这里
+                    </p>
+                  )}
                 </div>
               </SortableContext>
-            </section>
+            </WorkGroupSection>
           );
         })}
 
@@ -193,8 +289,10 @@ export function WorkBoard({
           </p>
         )}
 
-        {completed.length > 0 && (
-          <section className="space-y-2">
+        {(completed.length > 0 || draggingId !== null) && (
+          <WorkGroupSection
+            status="done"
+          >
             <button
               onClick={() => setShowCompleted((v) => !v)}
               className="flex items-center gap-1 text-sm font-normal text-muted-foreground"
@@ -226,9 +324,38 @@ export function WorkBoard({
                 </div>
               </SortableContext>
             )}
-          </section>
+            {completed.length === 0 && (
+              <p className="rounded-lg border border-dashed py-3 text-center text-xs text-muted-foreground/70">
+                拖到这里完成
+              </p>
+            )}
+          </WorkGroupSection>
         )}
       </DndContext>
     </div>
+  );
+}
+
+function WorkGroupSection({
+  status,
+  children,
+}: {
+  status: WorkStatus;
+  children: ReactNode;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: statusDropId(status),
+  });
+
+  return (
+    <section
+      ref={setNodeRef}
+      className={cn(
+        "space-y-1.5 rounded-lg transition-colors",
+        isOver && "bg-muted/40",
+      )}
+    >
+      {children}
+    </section>
   );
 }

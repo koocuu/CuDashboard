@@ -46,3 +46,10 @@ export const STATUS_OPTIONS = [
   "in_progress",
   "done",
 ] satisfies WorkStatus[];
+
+export const NEXT_STATUS_BY_DOT: Record<WorkStatus, WorkStatus> = {
+  someday: "scheduled",
+  scheduled: "in_progress",
+  in_progress: "done",
+  done: "in_progress",
+};

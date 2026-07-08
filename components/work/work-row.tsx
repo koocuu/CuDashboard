@@ -5,7 +5,11 @@ import { useSortable } from "@dnd-kit/sortable";
 import { Check, GripVertical, Pin, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { WorkItem, WorkStatus } from "@/lib/db/schema";
-import { STATUS_META, STATUS_OPTIONS } from "@/lib/work-meta";
+import {
+  NEXT_STATUS_BY_DOT,
+  STATUS_META,
+  STATUS_OPTIONS,
+} from "@/lib/work-meta";
 import { cn } from "@/lib/utils";
 
 export interface WorkRowProps {
@@ -27,11 +31,12 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
   const status = item.status as WorkStatus;
   const meta = STATUS_META[status];
   const done = status === "done";
+  const nextStatus = NEXT_STATUS_BY_DOT[status];
   const [editingName, setEditingName] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
 
-  function toggleDone() {
-    onPatch(item.id, { status: done ? "someday" : "done" });
+  function advanceStatus() {
+    onPatch(item.id, { status: nextStatus });
   }
 
   return (
@@ -57,10 +62,10 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
       </button>
 
       <button
-        onClick={toggleDone}
+        onClick={advanceStatus}
         className="mt-1 shrink-0"
-        aria-label={done ? "恢复到想做未做" : "标记已完成"}
-        title={done ? "恢复到想做未做" : "标记已完成"}
+        aria-label={`推进到${STATUS_META[nextStatus].label}`}
+        title={`推进到${STATUS_META[nextStatus].label}`}
       >
         <span
           className={cn(
