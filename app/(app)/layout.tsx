@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Settings } from "lucide-react";
-import { BottomNav } from "@/components/bottom-nav";
 import { LogoutButton } from "@/components/logout-button";
 import { isAuthenticated } from "@/lib/auth/session";
 import { pendingProposalCount } from "@/lib/queries/profile";
@@ -73,8 +72,7 @@ export default async function AppLayout({
           <LogoutButton />
         </div>
       </header>
-      <main className="flex-1 pb-24 pt-4 lg:pb-6">{children}</main>
-      <BottomNav proposalCount={proposalCount} />
+      <main className="flex-1 pb-6 pt-4">{children}</main>
     </div>
   );
 }
