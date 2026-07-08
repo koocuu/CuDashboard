@@ -31,7 +31,8 @@ export default function LoginPage() {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
-        window.location.href = "/dashboard";
+        const next = new URLSearchParams(window.location.search).get("next");
+        window.location.href = next?.startsWith("/") ? next : "/dashboard";
         return;
       }
       const data = await res.json().catch(() => ({}));

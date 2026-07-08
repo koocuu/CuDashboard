@@ -1,24 +1,38 @@
 import Link from "next/link";
 import { desc } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { apiTokens } from "@/lib/db/schema";
+import { apiTokens, oauthAuthorizations } from "@/lib/db/schema";
 import { TokenManager } from "@/components/profile/token-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function TokensPage() {
-  const tokens = await db
-    .select({
-      id: apiTokens.id,
-      name: apiTokens.name,
-      scope: apiTokens.scope,
-      lastUsedAt: apiTokens.lastUsedAt,
-      lastFetchedAt: apiTokens.lastFetchedAt,
-      createdAt: apiTokens.createdAt,
-      revokedAt: apiTokens.revokedAt,
-    })
-    .from(apiTokens)
-    .orderBy(desc(apiTokens.createdAt));
+  const [tokens, oauthRows] = await Promise.all([
+    db
+      .select({
+        id: apiTokens.id,
+        name: apiTokens.name,
+        scope: apiTokens.scope,
+        lastUsedAt: apiTokens.lastUsedAt,
+        lastFetchedAt: apiTokens.lastFetchedAt,
+        createdAt: apiTokens.createdAt,
+        revokedAt: apiTokens.revokedAt,
+      })
+      .from(apiTokens)
+      .orderBy(desc(apiTokens.createdAt)),
+    db
+      .select({
+        id: oauthAuthorizations.id,
+        clientName: oauthAuthorizations.clientName,
+        scope: oauthAuthorizations.scope,
+        lastUsedAt: oauthAuthorizations.lastUsedAt,
+        accessExpiresAt: oauthAuthorizations.accessExpiresAt,
+        createdAt: oauthAuthorizations.createdAt,
+        revokedAt: oauthAuthorizations.revokedAt,
+      })
+      .from(oauthAuthorizations)
+      .orderBy(desc(oauthAuthorizations.createdAt)),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -42,6 +56,13 @@ export default async function TokensPage() {
           lastFetchedAt: t.lastFetchedAt?.toISOString() ?? null,
           createdAt: t.createdAt.toISOString(),
           revokedAt: t.revokedAt?.toISOString() ?? null,
+        }))}
+        initialOAuthAuthorizations={oauthRows.map((row) => ({
+          ...row,
+          lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
+          accessExpiresAt: row.accessExpiresAt.toISOString(),
+          createdAt: row.createdAt.toISOString(),
+          revokedAt: row.revokedAt?.toISOString() ?? null,
         }))}
       />
     </div>

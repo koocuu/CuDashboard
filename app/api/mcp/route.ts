@@ -2,6 +2,7 @@ import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import { verifyBearer } from "@/lib/auth/tokens";
 import { buildContextPackage, resolveLayers } from "@/lib/context-builder";
+import { verifyOAuthAccessToken } from "@/lib/oauth";
 import { searchAll } from "@/lib/queries/search";
 import { createProposal } from "@/lib/proposals";
 import { isValidLayer } from "@/lib/queries/profile";
@@ -127,15 +128,32 @@ const authenticatedHandler = withMcpAuth(
       ? `Bearer ${bearerToken}`
       : req.headers.get("authorization");
     const auth = await verifyBearer(authHeader);
-    if (!auth) return undefined;
+    if (auth) {
+      const token = bearerToken ?? authHeader?.replace(/^Bearer\s+/i, "") ?? "";
+      return {
+        token,
+        clientId: auth.name,
+        scopes: auth.scope === "write" ? ["read", "write"] : ["read"],
+        extra: {
+          tokenId: auth.id,
+          tokenName: auth.name,
+          tokenType: "api",
+        },
+      };
+    }
+
+    if (!bearerToken) return undefined;
+    const oauth = await verifyOAuthAccessToken(bearerToken);
+    if (!oauth) return undefined;
 
     return {
-      token: bearerToken ?? authHeader?.replace(/^Bearer\s+/i, "") ?? "",
-      clientId: auth.name,
-      scopes: auth.scope === "write" ? ["read", "write"] : ["read"],
+      token: bearerToken,
+      clientId: oauth.clientId,
+      scopes: oauth.scopes,
       extra: {
-        tokenId: auth.id,
-        tokenName: auth.name,
+        tokenId: oauth.id,
+        tokenName: oauth.name,
+        tokenType: "oauth",
       },
     };
   },

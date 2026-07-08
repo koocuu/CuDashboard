@@ -146,6 +146,83 @@ export const apiTokens = pgTable("api_tokens", {
 });
 export type ApiToken = typeof apiTokens.$inferSelect;
 
+export const oauthClients = pgTable(
+  "oauth_clients",
+  {
+    id: serial("id").primaryKey(),
+    clientId: text("client_id").notNull().unique(),
+    clientName: text("client_name").notNull().default("OAuth Client"),
+    redirectUris: text("redirect_uris").array().notNull().default([]),
+    scope: text("scope").notNull().default("read write"),
+    tokenEndpointAuthMethod: text("token_endpoint_auth_method")
+      .notNull()
+      .default("none"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => ({
+    clientIdIdx: index("oauth_clients_client_id_idx").on(t.clientId),
+  }),
+);
+export type OAuthClient = typeof oauthClients.$inferSelect;
+
+export const oauthAuthorizationCodes = pgTable(
+  "oauth_authorization_codes",
+  {
+    id: serial("id").primaryKey(),
+    codeHash: text("code_hash").notNull().unique(),
+    clientId: text("client_id").notNull(),
+    redirectUri: text("redirect_uri").notNull(),
+    scope: text("scope").notNull().default("read write"),
+    codeChallenge: text("code_challenge").notNull(),
+    codeChallengeMethod: text("code_challenge_method").notNull().default("S256"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    codeHashIdx: index("oauth_authorization_codes_code_hash_idx").on(t.codeHash),
+  }),
+);
+export type OAuthAuthorizationCode =
+  typeof oauthAuthorizationCodes.$inferSelect;
+
+export const oauthAuthorizations = pgTable(
+  "oauth_authorizations",
+  {
+    id: serial("id").primaryKey(),
+    clientId: text("client_id").notNull(),
+    clientName: text("client_name").notNull().default("OAuth Client"),
+    scope: text("scope").notNull().default("read write"),
+    accessTokenHash: text("access_token_hash").notNull(),
+    refreshTokenHash: text("refresh_token_hash").notNull(),
+    accessExpiresAt: timestamp("access_expires_at", {
+      withTimezone: true,
+    }).notNull(),
+    refreshExpiresAt: timestamp("refresh_expires_at", {
+      withTimezone: true,
+    }).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => ({
+    accessTokenHashIdx: index("oauth_auth_access_token_hash_idx").on(
+      t.accessTokenHash,
+    ),
+    refreshTokenHashIdx: index("oauth_auth_refresh_token_hash_idx").on(
+      t.refreshTokenHash,
+    ),
+  }),
+);
+export type OAuthAuthorization = typeof oauthAuthorizations.$inferSelect;
+
 // ============================================================
 // Phase 3:通用条目表(情感复盘 / 人生感悟)
 // ============================================================
