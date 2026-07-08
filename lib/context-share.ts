@@ -83,7 +83,9 @@ export async function buildSharedContextHtml(
   if (!auth) return null;
 
   const layers = PRESET_VERSIONS[version].layers;
-  const markdown = await buildContextPackage(layers);
+  const markdown = await buildContextPackage(layers, {
+    includeUpdateProtocol: true,
+  });
   return htmlShell(markdown, version);
 }
 

@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
     url.searchParams.get("profile"),
     url.searchParams.get("layers"),
   );
-  const markdown = await buildContextPackage(layers);
+  const markdown = await buildContextPackage(layers, {
+    includeUpdateProtocol: true,
+  });
   return NextResponse.json({ markdown });
 }

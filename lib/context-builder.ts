@@ -1,5 +1,6 @@
 import { getAllLayers } from "@/lib/queries/profile";
 import { LAYER_META, LAYER_ORDER, PRESET_VERSIONS } from "@/lib/profile-meta";
+import { PROFILE_UPDATE_PROTOCOL } from "@/lib/profile-update-protocol";
 import type { ProfileDoc, ProfileLayer } from "@/lib/db/schema";
 
 function formatDay(date: Date): string {
@@ -42,6 +43,7 @@ function contextMeta(ordered: ProfileLayer[], byLayer: Map<string, ProfileDoc>) 
 
 export async function buildContextPackage(
   layers: ProfileLayer[],
+  options: { includeUpdateProtocol?: boolean } = {},
 ): Promise<string> {
   const all = await getAllLayers();
   const byLayer = new Map(all.map((layer) => [layer.layer, layer]));
@@ -65,6 +67,10 @@ export async function buildContextPackage(
 
   if (parts.length === 2) {
     parts.push("\n_(画像内容为空,请先在 Dashboard 编辑各层)_");
+  }
+
+  if (options.includeUpdateProtocol) {
+    parts.push(`\n${PROFILE_UPDATE_PROTOCOL}`);
   }
 
   return parts.join("\n\n");

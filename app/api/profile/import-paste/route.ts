@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseUpdateBlock } from "@/lib/profile-update-parser";
+import {
+  PROFILE_UPDATE_TEMPLATE,
+  parseUpdateBlock,
+} from "@/lib/profile-update-parser";
 import { createProposal } from "@/lib/proposals";
 
 export const runtime = "nodejs";
@@ -13,12 +16,18 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const text = typeof body.text === "string" ? body.text : "";
   if (!text.trim()) {
-    return NextResponse.json({ error: "内容为空" }, { status: 400 });
+    return NextResponse.json(
+      { error: "内容为空", template: PROFILE_UPDATE_TEMPLATE },
+      { status: 400 },
+    );
   }
 
   const parsed = parseUpdateBlock(text);
   if (!parsed.ok) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
+    return NextResponse.json(
+      { error: parsed.error, template: PROFILE_UPDATE_TEMPLATE },
+      { status: 400 },
+    );
   }
 
   const proposal = await createProposal({
