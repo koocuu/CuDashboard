@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogoutButton } from "@/components/logout-button";
+import { AppTopNav } from "@/components/app-top-nav";
 import { isAuthenticated } from "@/lib/auth/session";
 import { pendingProposalCount } from "@/lib/queries/profile";
 import { workStats } from "@/lib/queries/work";
@@ -26,44 +25,22 @@ export default async function AppLayout({
     // Do not block rendering while the database is unavailable.
   }
 
+  const statsLabel = stats
+    ? `进行中 ${String(stats.in_progress).padStart(2, "0")} · 排期 ${String(
+        stats.scheduled,
+      ).padStart(2, "0")} · 想做 ${String(stats.someday).padStart(
+        2,
+        "0",
+      )} · ${formatDate(new Date(), {
+        month: "2-digit",
+        day: "2-digit",
+        weekday: "short",
+      })}`
+    : null;
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col px-4 sm:px-6 xl:px-8">
-      <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-background/95 py-4">
-        <div className="flex min-w-0 items-center gap-4">
-          <Link
-            href="/dashboard"
-            className="font-mono text-sm font-semibold uppercase tracking-[0.22em]"
-          >
-            CONSOLE
-          </Link>
-          {stats && (
-            <span className="hidden truncate font-mono text-[11px] text-muted-foreground md:inline">
-              进行中 {String(stats.in_progress).padStart(2, "0")} · 排期{" "}
-              {String(stats.scheduled).padStart(2, "0")} · 想做{" "}
-              {String(stats.someday).padStart(2, "0")} ·{" "}
-              {formatDate(new Date(), {
-                month: "2-digit",
-                day: "2-digit",
-                weekday: "short",
-              })}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          <Link
-            href="/profile"
-            className="relative rounded-lg px-3 py-2 font-mono text-xs text-muted-foreground hover:text-foreground"
-          >
-            画像
-            {proposalCount > 0 && (
-              <span className="absolute -right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
-                {proposalCount}
-              </span>
-            )}
-          </Link>
-          <LogoutButton />
-        </div>
-      </header>
+      <AppTopNav proposalCount={proposalCount} statsLabel={statsLabel} />
       <main className="flex-1 pb-6 pt-4">{children}</main>
     </div>
   );
