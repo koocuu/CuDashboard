@@ -1,219 +1,149 @@
-import { NextRequest, NextResponse } from "next/server";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import { z } from "zod";
 import { verifyBearer } from "@/lib/auth/tokens";
 import { buildContextPackage, resolveLayers } from "@/lib/context-builder";
 import { searchAll } from "@/lib/queries/search";
 import { createProposal } from "@/lib/proposals";
 import { isValidLayer } from "@/lib/queries/profile";
-import { db } from "@/lib/db";
-import { entries } from "@/lib/db/schema";
 import type { ProfileLayer } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * 远程 MCP Server(v2 Phase 3)。
- * Streamable HTTP transport,JSON-RPC 2.0。
- * 工具:get_profile / propose_profile_update / search_entries / create_entry。
- * 底层复用画像 proposal / 检索 / 条目机制。鉴权:Bearer token。
- */
+function textResult(text: string, isError = false) {
+  return {
+    content: [{ type: "text" as const, text }],
+    isError,
+  };
+}
 
-const SERVER_INFO = { name: "console-mcp", version: "1.0.0" };
-
-const TOOLS = [
-  {
-    name: "get_profile",
-    description:
-      "读取用户的个人画像(Markdown)。参数 profile: full|general,或 layers 逗号分隔层名。",
-    inputSchema: {
-      type: "object",
-      properties: {
-        profile: { type: "string", enum: ["full", "general"] },
-        layers: { type: "string", description: "如 core,status" },
-      },
-    },
-  },
-  {
-    name: "propose_profile_update",
-    description:
-      "提交一条画像修改提案(不直接生效,需用户在 Dashboard 确认)。",
-    inputSchema: {
-      type: "object",
-      properties: {
-        layer: {
-          type: "string",
-          enum: ["core", "investing", "creative", "status", "private"],
+const mcpHandler = createMcpHandler(
+  (server) => {
+    server.registerTool(
+      "get_profile",
+      {
+        title: "Get Profile",
+        description:
+          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/investing/creative/status/private);不传则返回该 token 权限内的全部层,包括 private 层。用于让 AI 在新对话中理解用户背景、偏好、当前状态与附录信息。",
+        inputSchema: {
+          layers: z
+            .string()
+            .optional()
+            .describe("可选。逗号分隔的画像层名,如 core,status 或 core,investing,creative,status。"),
         },
-        content: { type: "string", description: "该层的完整新版本 Markdown" },
-        summary: { type: "string" },
       },
-      required: ["layer", "content"],
-    },
-  },
-  {
-    name: "search_entries",
-    description: "全文检索用户的条目(画像预留 entries、工作、持仓)。",
-    inputSchema: {
-      type: "object",
-      properties: { query: { type: "string" } },
-      required: ["query"],
-    },
-  },
-  {
-    name: "create_entry",
-    description:
-      "创建一条通用条目。entries 暂不做手动 UI,用于 AI 写入后的数据沉淀。",
-    inputSchema: {
-      type: "object",
-      properties: {
-        section: { type: "string" },
-        content: { type: "string" },
-        title: { type: "string" },
-        tags: { type: "array", items: { type: "string" } },
+      async ({ layers }) => {
+        const resolvedLayers = layers
+          ? resolveLayers(null, layers)
+          : resolveLayers("full", null);
+        const markdown = await buildContextPackage(resolvedLayers);
+        return textResult(markdown);
       },
-      required: ["section", "content"],
-    },
-  },
-];
+    );
 
-function rpcResult(id: unknown, result: unknown) {
-  return NextResponse.json({ jsonrpc: "2.0", id, result });
-}
-function rpcError(id: unknown, code: number, message: string) {
-  return NextResponse.json({ jsonrpc: "2.0", id, error: { code, message } });
-}
-function toolText(text: string) {
-  return { content: [{ type: "text", text }] };
-}
-
-export async function POST(req: NextRequest) {
-  // 鉴权
-  const authRes = await verifyBearer(req.headers.get("authorization"));
-  if (!authRes) {
-    return rpcError(null, -32001, "无效或缺失的 Bearer token");
-  }
-  const canWrite = authRes.scope === "write";
-
-  const body = await req.json().catch(() => null);
-  if (!body || body.jsonrpc !== "2.0") {
-    return rpcError(body?.id ?? null, -32600, "Invalid Request");
-  }
-
-  const { id, method, params } = body;
-
-  switch (method) {
-    case "initialize":
-      return rpcResult(id, {
-        protocolVersion: "2024-11-05",
-        capabilities: { tools: {} },
-        serverInfo: SERVER_INFO,
-      });
-
-    case "notifications/initialized":
-      return new NextResponse(null, { status: 202 });
-
-    case "tools/list":
-      return rpcResult(id, { tools: TOOLS });
-
-    case "tools/call": {
-      const name = params?.name;
-      const args = params?.arguments ?? {};
-      try {
-        if (name === "get_profile") {
-          const layers = resolveLayers(
-            args.profile ?? null,
-            args.layers ?? null,
-          );
-          const md = await buildContextPackage(layers);
-          return rpcResult(id, toolText(md));
+    server.registerTool(
+      "search_entries",
+      {
+        title: "Search Entries",
+        description:
+          "搜索用户数据库中的工作事项、持仓和通用条目。参数 q 是搜索关键词。底层复用 dashboard 的 pg_trgm/ILIKE 全文检索,适合回答'最近排期事项是什么'、'某个标的买入逻辑是什么'这类问题。",
+        inputSchema: {
+          q: z.string().min(1).describe("搜索关键词,例如 排期、北方华创、Console。"),
+        },
+      },
+      async ({ q }) => {
+        const hits = await searchAll(q.trim());
+        if (hits.length === 0) {
+          return textResult(`未找到与「${q}」相关的条目。`);
         }
 
-        if (name === "propose_profile_update") {
-          if (!canWrite) {
-            return rpcResult(
-              id,
-              toolText("错误:此 token 无写权限,无法提交提案。"),
-            );
-          }
-          if (!isValidLayer(args.layer)) {
-            return rpcResult(id, toolText("错误:layer 非法。"));
-          }
-          if (typeof args.content !== "string" || !args.content.trim()) {
-            return rpcResult(id, toolText("错误:content 不能为空。"));
-          }
-          const proposal = await createProposal({
-            layer: args.layer as ProfileLayer,
-            proposedContentMd: args.content,
-            summary: args.summary,
-            source: "mcp",
-            sourceName: authRes.name,
-          });
-          return rpcResult(
-            id,
-            toolText(
-              `已创建提案 #${proposal.id}(${proposal.diffSummary})。用户需在 Dashboard 确认后才会生效。`,
-            ),
-          );
+        const text = hits
+          .map((hit) => `[${hit.kind}] #${hit.id} ${hit.title} - ${hit.snippet}`)
+          .join("\n");
+        return textResult(text);
+      },
+    );
+
+    server.registerTool(
+      "propose_profile_update",
+      {
+        title: "Propose Profile Update",
+        description:
+          "提交画像修改的待确认提案。此工具不会直接覆盖画像,只会在 dashboard 创建 pending proposal,用户需要查看 diff 并批准后才会生效。参数 layer 是目标画像层,content_md 是该层新的完整 Markdown 正文,summary 是这次修改摘要。需要 write token。",
+        inputSchema: {
+          layer: z
+            .enum(["core", "investing", "creative", "status", "private"])
+            .describe("目标画像层:core/investing/creative/status/private。"),
+          content_md: z
+            .string()
+            .min(1)
+            .describe("该层新的完整 Markdown 正文,不是局部 patch。"),
+          summary: z.string().min(1).describe("这次画像修改的简短摘要。"),
+        },
+      },
+      async ({ layer, content_md, summary }, extra) => {
+        const scopes = extra.authInfo?.scopes ?? [];
+        if (!scopes.includes("write")) {
+          return textResult("错误:此 token 无写权限,无法提交画像修改提案。", true);
+        }
+        if (!isValidLayer(layer)) {
+          return textResult("错误:layer 非法。", true);
         }
 
-        if (name === "search_entries") {
-          if (typeof args.query !== "string" || !args.query.trim()) {
-            return rpcResult(id, toolText("错误:query 不能为空。"));
-          }
-          const hits = await searchAll(args.query);
-          if (hits.length === 0) {
-            return rpcResult(id, toolText(`未找到与「${args.query}」相关的条目。`));
-          }
-          const text = hits
-            .map((h) => `[${h.kind}] ${h.title} — ${h.snippet}`)
-            .join("\n");
-          return rpcResult(id, toolText(text));
-        }
+        const proposal = await createProposal({
+          layer: layer as ProfileLayer,
+          proposedContentMd: content_md,
+          summary,
+          source: "mcp",
+          sourceName:
+            typeof extra.authInfo?.extra?.tokenName === "string"
+              ? extra.authInfo.extra.tokenName
+              : "mcp",
+        });
 
-        if (name === "create_entry") {
-          if (!canWrite) {
-            return rpcResult(id, toolText("错误:此 token 无写权限。"));
-          }
-          const section = args.section;
-          const content =
-            typeof args.content === "string" ? args.content.trim() : "";
-          if (!section || !content) {
-            return rpcResult(id, toolText("错误:section 与 content 必填。"));
-          }
-          const [entry] = await db
-            .insert(entries)
-            .values({
-              sectionKey: section,
-              type: "note",
-              title: typeof args.title === "string" ? args.title : "",
-              contentMd: content,
-              tags: Array.isArray(args.tags) ? args.tags : [],
-            })
-            .returning();
-          return rpcResult(id, toolText(`已创建条目 #${entry.id}。`));
-        }
-
-        return rpcError(id, -32602, `未知工具:${name}`);
-      } catch (e) {
-        return rpcError(
-          id,
-          -32603,
-          e instanceof Error ? e.message : "内部错误",
+        return textResult(
+          `已创建待确认画像提案 #${proposal.id}: ${proposal.diffSummary}。请用户在 dashboard 中查看 diff 并批准后生效。`,
         );
-      }
-    }
+      },
+    );
+  },
+  {
+    serverInfo: {
+      name: "console-mcp",
+      version: "1.0.0",
+    },
+  },
+  {
+    basePath: "/api",
+    maxDuration: 60,
+    disableSse: true,
+  },
+);
 
-    default:
-      return rpcError(id, -32601, `未知方法:${method}`);
-  }
-}
+const authenticatedHandler = withMcpAuth(
+  mcpHandler,
+  async (req, bearerToken) => {
+    const authHeader = bearerToken
+      ? `Bearer ${bearerToken}`
+      : req.headers.get("authorization");
+    const auth = await verifyBearer(authHeader);
+    if (!auth) return undefined;
 
-/** GET:健康检查 / 说明。 */
-export async function GET() {
-  return NextResponse.json({
-    server: SERVER_INFO,
-    transport: "streamable-http (JSON-RPC 2.0 over POST)",
-    tools: TOOLS.map((t) => t.name),
-    note: "在 MCP 客户端配置此 URL,Authorization: Bearer <token>。",
-  });
-}
+    return {
+      token: bearerToken ?? authHeader?.replace(/^Bearer\s+/i, "") ?? "",
+      clientId: auth.name,
+      scopes: auth.scope === "write" ? ["read", "write"] : ["read"],
+      extra: {
+        tokenId: auth.id,
+        tokenName: auth.name,
+      },
+    };
+  },
+  { required: true },
+);
+
+export {
+  authenticatedHandler as DELETE,
+  authenticatedHandler as GET,
+  authenticatedHandler as POST,
+};

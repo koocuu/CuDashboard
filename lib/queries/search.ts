@@ -1,10 +1,6 @@
+import { and, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { sql, and, isNull } from "drizzle-orm";
-import {
-  entries,
-  workItems,
-  holdings,
-} from "@/lib/db/schema";
+import { entries, holdings, workItems } from "@/lib/db/schema";
 
 export interface SearchHit {
   kind: string;
@@ -13,10 +9,6 @@ export interface SearchHit {
   snippet: string;
 }
 
-/**
- * 全文检索(pg_trgm ILIKE)。跨多个专表 + entries。
- * PRD 3.1:中文用 ILIKE + GIN(gin_trgm_ops),不用 tsvector。
- */
 export async function searchAll(q: string, limit = 30): Promise<SearchHit[]> {
   const term = `%${q}%`;
   const hits: SearchHit[] = [];
@@ -54,23 +46,33 @@ export async function searchAll(q: string, limit = 30): Promise<SearchHit[]> {
       .limit(limit),
   ]);
 
-  const snip = (s: string) => (s || "").replace(/\s+/g, " ").slice(0, 120);
+  const snip = (value: string) =>
+    (value || "").replace(/\s+/g, " ").slice(0, 120);
 
-  for (const r of entryRows)
+  for (const row of entryRows) {
     hits.push({
-      kind: `条目/${r.sectionKey}`,
-      id: r.id,
-      title: r.title || "(无标题)",
-      snippet: snip(r.contentMd),
+      kind: `条目/${row.sectionKey}`,
+      id: row.id,
+      title: row.title || "(无标题)",
+      snippet: snip(row.contentMd),
     });
-  for (const r of workRows)
-    hits.push({ kind: "工作", id: r.id, title: r.name, snippet: snip(r.note) });
-  for (const r of holdingRows)
+  }
+  for (const row of workRows) {
+    hits.push({
+      kind: "工作",
+      id: row.id,
+      title: row.name,
+      snippet: snip(row.note),
+    });
+  }
+  for (const row of holdingRows) {
     hits.push({
       kind: "持仓",
-      id: r.id,
-      title: r.name,
-      snippet: snip(r.thesisMd),
+      id: row.id,
+      title: row.name,
+      snippet: snip(row.thesisMd),
     });
+  }
+
   return hits.slice(0, limit);
 }

@@ -51,7 +51,7 @@ npm run dev
 - 画像:五层 Markdown、完整版/通用版/自定义分发、一键复制、版本历史、回滚
 - Proposal:REST/write token、粘贴更新块、MCP 三条写入通道,全部需用户 diff 确认
 - Token:read/write token 生成、吊销、最后使用时间
-- MCP:`get_profile` / `propose_profile_update` / `search_entries` / `create_entry`
+- MCP:`get_profile` / `search_entries` / `propose_profile_update`
 - 导入导出:`/api/import` JSON 导入,`/api/export` 全量 Markdown ZIP
 - 备份:Vercel Cron 每日全量 Markdown 快照到 GitHub 私库
 - Demo seed:`npm run seed:demo` 导入 `console-seed-data.md` 对应的工作事项、持仓、画像层和一条 pending proposal
@@ -118,3 +118,29 @@ lib/
 - 所有内容正文以 Markdown 存储,结构化字段独立成列。
 - 所有时间存 UTC,展示按 Asia/Shanghai。
 - 删除均为软删除。
+
+## Claude.ai 连接远程 MCP
+
+此项目在同一个 Vercel 部署里提供远程 MCP Server:
+
+```text
+https://dashboard.koocuu.com/api/mcp
+```
+
+在 dashboard 的 `画像 -> Token 管理` 里生成一个 API token。若只需要读取画像和搜索库,用 `read` token;如果希望 Claude 能提交画像修改提案,用 `write` token。写入不会直接覆盖画像,只会创建待确认 proposal,需要在 dashboard 里查看 diff 并批准。
+
+在 claude.ai 中添加连接器:
+
+1. 打开 `设置 -> 连接器 -> 添加自定义连接器`。
+2. URL 填写 `https://dashboard.koocuu.com/api/mcp`。
+3. 鉴权选择 Bearer token,值填写 dashboard 生成的 API token。实际 HTTP 头为:
+
+```text
+Authorization: Bearer <你的 API token>
+```
+
+连接成功后 Claude 可使用三个工具:
+
+- `get_profile`: 读取画像层,可用 `layers` 指定 `core/investing/creative/status/private`。
+- `search_entries`: 搜索工作事项、持仓和通用条目。
+- `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。
