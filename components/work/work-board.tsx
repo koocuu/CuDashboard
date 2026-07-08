@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { WORK_ITEM_CREATED_EVENT } from "@/components/quick-add";
 import { WorkRow } from "./work-row";
 
-const COMPLETED: WorkStatus[] = ["done", "archived"];
+const COMPLETED: WorkStatus[] = ["done"];
 
 export function WorkBoard({
   initialItems,
@@ -74,7 +74,7 @@ export function WorkBoard({
       const res = await fetch("/api/work-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, status: "inbox" }),
+        body: JSON.stringify({ name, status: "someday" }),
       });
       if (res.ok) {
         const { item } = (await res.json()) as { item: WorkItem };
@@ -189,7 +189,7 @@ export function WorkBoard({
 
         {active.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            还没有事项,先记一条进收件箱。
+            还没有事项,先记一条。
           </p>
         )}
 
@@ -204,7 +204,7 @@ export function WorkBoard({
               ) : (
                 <ChevronRight className="h-3.5 w-3.5" />
               )}
-              已完成 · 归档
+              已完成
               <span className="rounded-full bg-[#EAF1EB] px-1.5 py-0.5 font-mono text-[10px] text-positive">
                 {String(completed.length).padStart(2, "0")}
               </span>

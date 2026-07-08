@@ -26,12 +26,12 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
 
   const status = item.status as WorkStatus;
   const meta = STATUS_META[status];
-  const closed = status === "done" || status === "archived";
+  const done = status === "done";
   const [editingName, setEditingName] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
 
   function toggleDone() {
-    onPatch(item.id, { status: closed ? "inbox" : "done" });
+    onPatch(item.id, { status: done ? "someday" : "done" });
   }
 
   return (
@@ -59,8 +59,8 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
       <button
         onClick={toggleDone}
         className="mt-1 shrink-0"
-        aria-label={closed ? "恢复到收件箱" : "标记完成"}
-        title={closed ? "恢复到收件箱" : "标记完成"}
+        aria-label={done ? "恢复到想做未做" : "标记已完成"}
+        title={done ? "恢复到想做未做" : "标记已完成"}
       >
         <span
           className={cn(
@@ -68,7 +68,7 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
             meta.dot,
           )}
         >
-          {closed && <Check className="h-2.5 w-2.5 text-white" />}
+          {done && <Check className="h-2.5 w-2.5 text-white" />}
         </span>
       </button>
 
@@ -93,7 +93,7 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
             onClick={() => setEditingName(true)}
             className={cn(
               "cursor-text text-sm font-medium text-foreground",
-              closed && "text-muted-foreground line-through",
+              done && "text-muted-foreground line-through",
             )}
           >
             {item.name}
@@ -111,7 +111,7 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
               meta.badge,
             )}
             aria-label="事项状态"
-            title="显式选择状态"
+            title="选择状态"
           >
             {STATUS_OPTIONS.map((option) => (
               <option key={option} value={option}>

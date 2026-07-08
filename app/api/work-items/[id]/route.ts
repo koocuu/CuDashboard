@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { workItems, WORK_STATUSES, type WorkStatus } from "@/lib/db/schema";
+import {
+  LEGACY_WORK_STATUS_MAP,
+  WORK_STATUSES,
+  normalizeWorkStatus,
+  workItems,
+  type WorkStatus,
+} from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 
@@ -10,12 +16,12 @@ function parseId(param: string): number | null {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
-function isWorkStatus(value: unknown): value is WorkStatus {
-  return typeof value === "string" && WORK_STATUSES.includes(value as WorkStatus);
-}
-
-function isClosedStatus(status: WorkStatus) {
-  return status === "done" || status === "archived";
+function isStatusInput(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    ((WORK_STATUSES as readonly string[]).includes(value) ||
+      value in LEGACY_WORK_STATUS_MAP)
+  );
 }
 
 export async function PATCH(
@@ -43,11 +49,12 @@ export async function PATCH(
   if (typeof body.pinned === "boolean") patch.pinned = body.pinned;
 
   if (body.status !== undefined) {
-    if (!isWorkStatus(body.status)) {
+    if (!isStatusInput(body.status)) {
       return NextResponse.json({ error: "无效状态" }, { status: 400 });
     }
-    patch.status = body.status;
-    patch.doneAt = isClosedStatus(body.status) ? new Date() : null;
+    const status: WorkStatus = normalizeWorkStatus(body.status);
+    patch.status = status;
+    patch.doneAt = status === "done" ? new Date() : null;
   }
 
   const [item] = await db
@@ -57,7 +64,9 @@ export async function PATCH(
     .returning();
 
   if (!item) return NextResponse.json({ error: "未找到" }, { status: 404 });
-  return NextResponse.json({ item });
+  return NextResponse.json({
+    item: { ...item, status: normalizeWorkStatus(item.status) },
+  });
 }
 
 export async function DELETE(

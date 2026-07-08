@@ -11,8 +11,7 @@ import {
 
 /**
  * 工作事项(Phase 1)
- * status: inbox 收件 / in_progress 进行中 / scheduled 排期 / waiting 等待外部
- * / someday 想做未做 / done 完成 / archived 归档
+ * status: someday 想做未做 / scheduled 排期待做 / in_progress 进行中 / done 已完成
  * 所有时间存 UTC,展示层按 Asia/Shanghai 转换。
  * 软删除:deleted_at 非空即已删除。
  */
@@ -21,7 +20,7 @@ export const workItems = pgTable(
   {
     id: serial("id").primaryKey(),
     name: text("name").notNull(),
-    status: text("status").notNull().default("inbox"),
+    status: text("status").notNull().default("someday"),
     note: text("note").notNull().default(""),
     pinned: boolean("pinned").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -44,16 +43,34 @@ export type WorkItem = typeof workItems.$inferSelect;
 export type NewWorkItem = typeof workItems.$inferInsert;
 
 export const WORK_STATUSES = [
-  "inbox",
-  "in_progress",
-  "scheduled",
-  "waiting",
   "someday",
+  "scheduled",
+  "in_progress",
   "done",
-  "archived",
 ] as const;
 
 export type WorkStatus = (typeof WORK_STATUSES)[number];
+
+export const LEGACY_WORK_STATUS_MAP = {
+  inbox: "someday",
+  waiting: "scheduled",
+  archived: "done",
+} as const satisfies Record<string, WorkStatus>;
+
+export function normalizeWorkStatus(status: string | null | undefined): WorkStatus {
+  if (
+    status &&
+    (WORK_STATUSES as readonly string[]).includes(status)
+  ) {
+    return status as WorkStatus;
+  }
+  if (status && status in LEGACY_WORK_STATUS_MAP) {
+    return LEGACY_WORK_STATUS_MAP[
+      status as keyof typeof LEGACY_WORK_STATUS_MAP
+    ];
+  }
+  return "someday";
+}
 
 // ============================================================
 // Phase 2:AI 画像层

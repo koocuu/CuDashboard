@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { workItems, WORK_STATUSES, type WorkStatus } from "@/lib/db/schema";
+import {
+  normalizeWorkStatus,
+  workItems,
+  type WorkStatus,
+} from "@/lib/db/schema";
 import { listWorkItems } from "@/lib/queries/work";
 
 export const runtime = "nodejs";
 
 function parseStatus(value: unknown): WorkStatus {
-  return typeof value === "string" &&
-    WORK_STATUSES.includes(value as WorkStatus)
-    ? (value as WorkStatus)
-    : "inbox";
+  return typeof value === "string" ? normalizeWorkStatus(value) : "someday";
 }
 
 export async function GET() {
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
       pinned: body.pinned === true,
       status,
       sortOrder: Number(max) + 1,
-      doneAt: status === "done" || status === "archived" ? new Date() : null,
+      doneAt: status === "done" ? new Date() : null,
     })
     .returning();
 

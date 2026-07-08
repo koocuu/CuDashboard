@@ -40,9 +40,9 @@ export default async function AppLayout({
           </Link>
           {stats && (
             <span className="hidden truncate font-mono text-[11px] text-muted-foreground md:inline">
-              收件 {String(stats.inbox).padStart(2, "0")} · 进行中{" "}
-              {String(stats.in_progress).padStart(2, "0")} · 等待{" "}
-              {String(stats.waiting).padStart(2, "0")} ·{" "}
+              进行中 {String(stats.in_progress).padStart(2, "0")} · 排期{" "}
+              {String(stats.scheduled).padStart(2, "0")} · 想做{" "}
+              {String(stats.someday).padStart(2, "0")} ·{" "}
               {formatDate(new Date(), {
                 month: "2-digit",
                 day: "2-digit",

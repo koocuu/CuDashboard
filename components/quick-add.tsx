@@ -22,7 +22,7 @@ export function QuickAdd() {
       const res = await fetch("/api/work-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, status: "inbox" }),
+        body: JSON.stringify({ name, status: "someday" }),
       });
       if (res.ok) {
         const { item } = (await res.json()) as { item: WorkItem };

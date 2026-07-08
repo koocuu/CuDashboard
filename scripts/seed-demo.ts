@@ -19,7 +19,7 @@ const workSeed: Array<{
   { name: "Engage SDK", status: "scheduled", note: "排期", pinned: false },
   {
     name: "ANR 治理",
-    status: "waiting",
+    status: "scheduled",
     note: "治理完成,等龙哥看低端机 C1",
     pinned: false,
   },
@@ -35,7 +35,7 @@ const workSeed: Array<{
     note: "排期 app.onCreate",
     pinned: false,
   },
-  { name: "决策助手", status: "archived", note: "", pinned: false },
+  { name: "决策助手", status: "done", note: "", pinned: false },
   {
     name: "棱角计划 / 碳基灵感收容所",
     status: "in_progress",
