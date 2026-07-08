@@ -47,9 +47,8 @@ export default async function TokensPage() {
       <p className="text-sm text-muted-foreground">
         发给联网 AI 时优先用{" "}
         <code className="rounded bg-muted px-1">/c/&lt;slug&gt;</code>{" "}
-        分享页;脚本、MCP 和自动化继续用{" "}
-        <code className="rounded bg-muted px-1">/api/context?token=...</code>{" "}
-        或 Bearer token。分享页和 API token 都可命名、吊销。
+        分享页;脚本、MCP 和自动化使用 Bearer token。分享页和 API token
+        都可命名、吊销。
       </p>
       <TokenManager
         initialTokens={tokens.map((t) => ({

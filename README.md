@@ -48,6 +48,7 @@ npm run dev
 - 首页:画像 `status` 当前状态卡、pending proposal 角标、置顶工作事项、工作摘要、持仓摘要、AI 写入动态、备份失败告警
 - 工作:收件箱快速录入、状态流转、想做未做、置顶、组内拖拽、行内编辑、软删除
 - 持仓:按 A 股/美股分组、仓位占比、买入逻辑、观察池、结构图
+- 投资复盘:每月一条 Markdown 复盘,保存时自动附上当月仓位结构快照
 - 画像:五层 Markdown、完整版/通用版/自定义分发、一键复制、版本历史、回滚
 - Proposal:REST/write token、粘贴更新块、MCP 三条写入通道,全部需用户 diff 确认
 - Token:read/write token 生成、吊销、最后使用时间
@@ -70,7 +71,6 @@ app/
     auth/           # 登录 / 登出
     work-items/     # 工作事项 CRUD + reorder
     holdings/       # 持仓 CRUD
-    context/         # AI 画像 Markdown 分发
     profile/         # 画像层、提案、粘贴导入、回滚
     tokens/          # API token 管理
     search/          # entries + work_items + holdings 中文检索
@@ -89,7 +89,7 @@ lib/
 
 | 方法 | 路径 | 权限 | 说明 |
 |---|---|---|---|
-| `GET` | `/api/context?profile=general` | read | 返回纯 Markdown 画像 |
+| `GET` | `/c/<slug>` | share | 分享页式画像分发 |
 | `GET` | `/api/export` | read | 下载全量 Markdown ZIP |
 | `GET` | `/api/search?q=关键词` | read | 检索 entries + 工作 + 持仓 |
 | `POST` | `/api/profile/proposals` | write | 创建画像修改提案 |
@@ -127,7 +127,7 @@ lib/
 https://dashboard.koocuu.com/api/mcp
 ```
 
-在 dashboard 的 `画像 -> Token 管理` 里生成一个 API token。若只需要读取画像和搜索库,用 `read` token;如果希望 Claude 能提交画像修改提案,用 `write` token。写入不会直接覆盖画像,只会创建待确认 proposal,需要在 dashboard 里查看 diff 并批准。
+在 dashboard 的 `画像 -> Token 管理` 里生成一个 API token。API token 默认用于读取画像、搜索库和提交画像修改提案。写入不会直接覆盖画像,只会创建待确认 proposal,需要在 dashboard 里查看 diff 并批准。
 
 在 claude.ai 中添加连接器:
 

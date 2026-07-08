@@ -29,7 +29,6 @@ interface OAuthAuthorizationRow {
 interface GeneratedSecret {
   plain: string;
   kind: "api" | "share";
-  contextUrl: string | null;
   shareUrl: string | null;
   fullShareUrl: string | null;
 }
@@ -68,7 +67,6 @@ export function TokenManager({
         setGenerated({
           plain: data.plain,
           kind: data.kind,
-          contextUrl: data.contextUrl,
           shareUrl: data.shareUrl,
           fullShareUrl: data.fullShareUrl,
         });
@@ -189,14 +187,9 @@ export function TokenManager({
                   copied={copied === "plain"}
                   onCopy={() => copy(generated.plain, "plain")}
                 />
-                {generated.contextUrl && (
-                  <CopyRow
-                    label="Context API"
-                    value={generated.contextUrl}
-                    copied={copied === "context"}
-                    onCopy={() => copy(generated.contextUrl ?? "", "context")}
-                  />
-                )}
+                <p className="text-xs text-muted-foreground">
+                  用法:HTTP Authorization 头传 Bearer token,可访问 MCP 与脚本接口。
+                </p>
               </>
             )}
           </div>

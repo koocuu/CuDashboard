@@ -47,8 +47,6 @@ export async function POST(req: NextRequest) {
       kind,
       shareUrl: kind === "share" ? `${origin}/c/${plain}` : null,
       fullShareUrl: kind === "share" ? `${origin}/c/${plain}/full` : null,
-      contextUrl:
-        kind === "api" ? `${origin}/api/context?token=${plain}&profile=general` : null,
     },
     { status: 201 },
   );

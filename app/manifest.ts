@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "个人人生控制台 + AI 画像分发系统",
     start_url: "/dashboard",
     display: "standalone",
-    background_color: "#0f0f11",
-    theme_color: "#0f0f11",
+    background_color: "#FAF7F1",
+    theme_color: "#FAF7F1",
     orientation: "portrait",
     lang: "zh-CN",
     icons: [
