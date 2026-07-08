@@ -46,7 +46,6 @@ export function TokenManager({
     OAuthAuthorizationRow[]
   >(initialOAuthAuthorizations);
   const [name, setName] = useState("");
-  const [scope, setScope] = useState<"read" | "write">("read");
   const [kind, setKind] = useState<"api" | "share">("share");
   const [generated, setGenerated] = useState<GeneratedSecret | null>(null);
   const [copied, setCopied] = useState("");
@@ -61,7 +60,6 @@ export function TokenManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          scope,
           kind,
         }),
       });
@@ -97,11 +95,7 @@ export function TokenManager({
     if (!confirm("确认吊销这个 token / 分享页?")) return;
     const res = await fetch(`/api/tokens/${id}`, { method: "DELETE" });
     if (res.ok) {
-      setTokens((prev) =>
-        prev.map((t) =>
-          t.id === id ? { ...t, revokedAt: new Date().toISOString() } : t,
-        ),
-      );
+      setTokens((prev) => prev.filter((t) => t.id !== id));
     }
   }
 
@@ -112,11 +106,7 @@ export function TokenManager({
     });
     if (res.ok) {
       setOAuthAuthorizations((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? { ...item, revokedAt: new Date().toISOString() }
-            : item,
-        ),
+        prev.filter((item) => item.id !== id),
       );
     }
   }
@@ -158,22 +148,9 @@ export function TokenManager({
               ))}
             </div>
             {kind === "api" && (
-              <div className="flex rounded-md border p-0.5 text-sm">
-                {(["read", "write"] as const).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setScope(s)}
-                    className={cn(
-                      "rounded px-3 py-1",
-                      scope === s
-                        ? "bg-muted text-foreground"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+              <span className="text-xs text-muted-foreground">
+                默认读写:读取画像/检索/提交提案
+              </span>
             )}
             <Button size="sm" onClick={create} disabled={busy || !name.trim()}>
               生成
@@ -228,26 +205,17 @@ export function TokenManager({
         <div className="space-y-2">
           <h2 className="text-sm text-muted-foreground">API token / 分享页</h2>
           {tokens.map((t) => {
-            const revoked = !!t.revokedAt;
             return (
               <div
                 key={t.id}
-                className={cn(
-                  "flex items-center justify-between rounded-lg border bg-card p-3",
-                  revoked && "opacity-50",
-                )}
+                className="flex items-center justify-between rounded-lg border bg-card p-3"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{t.name}</span>
                     <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                      {t.scope}
+                      {t.scope === "write" ? "读写 token" : "只读/分享"}
                     </span>
-                    {revoked && (
-                      <span className="text-xs text-muted-foreground">
-                        已吊销
-                      </span>
-                    )}
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     最后使用 {t.lastUsedAt ? formatDate(t.lastUsedAt) : "从未"}
@@ -257,15 +225,13 @@ export function TokenManager({
                     {t.lastFetchedAt ? formatDate(t.lastFetchedAt) : "从未"}
                   </p>
                 </div>
-                {!revoked && (
-                  <button
-                    onClick={() => revoke(t.id)}
-                    className="text-muted-foreground/50 hover:text-foreground"
-                    aria-label="吊销"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
+                <button
+                  onClick={() => revoke(t.id)}
+                  className="text-muted-foreground/50 hover:text-foreground"
+                  aria-label="吊销"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             );
           })}
@@ -280,14 +246,10 @@ export function TokenManager({
       <section className="space-y-2">
         <h2 className="text-sm text-muted-foreground">OAuth 授权</h2>
         {oauthAuthorizations.map((item) => {
-          const revoked = !!item.revokedAt;
           return (
             <div
               key={item.id}
-              className={cn(
-                "flex items-center justify-between rounded-lg border bg-card p-3",
-                revoked && "opacity-50",
-              )}
+              className="flex items-center justify-between rounded-lg border bg-card p-3"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -295,11 +257,6 @@ export function TokenManager({
                   <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                     OAuth · {item.scope}
                   </span>
-                  {revoked && (
-                    <span className="text-xs text-muted-foreground">
-                      已吊销
-                    </span>
-                  )}
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   最后使用{" "}
@@ -309,15 +266,13 @@ export function TokenManager({
                   access token 到期 {formatDate(item.accessExpiresAt)}
                 </p>
               </div>
-              {!revoked && (
-                <button
-                  onClick={() => revokeOAuth(item.id)}
-                  className="text-muted-foreground/50 hover:text-foreground"
-                  aria-label="吊销 OAuth 授权"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
+              <button
+                onClick={() => revokeOAuth(item.id)}
+                className="text-muted-foreground/50 hover:text-foreground"
+                aria-label="吊销 OAuth 授权"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           );
         })}

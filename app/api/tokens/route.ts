@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { desc } from "drizzle-orm";
+import { desc, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { apiTokens } from "@/lib/db/schema";
 import { generateShareSlug, generateToken, hashToken } from "@/lib/auth/tokens";
@@ -18,6 +18,7 @@ export async function GET() {
       revokedAt: apiTokens.revokedAt,
     })
     .from(apiTokens)
+    .where(isNull(apiTokens.revokedAt))
     .orderBy(desc(apiTokens.createdAt));
   return NextResponse.json({ tokens: rows });
 }
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const kind = body.kind === "share" ? "share" : "api";
-  const scope = kind === "share" ? "read" : body.scope === "write" ? "write" : "read";
+  const scope = kind === "share" ? "read" : "write";
 
   if (!name) {
     return NextResponse.json({ error: "名称不能为空" }, { status: 400 });

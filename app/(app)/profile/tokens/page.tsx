@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { desc } from "drizzle-orm";
+import { desc, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { apiTokens, oauthAuthorizations } from "@/lib/db/schema";
 import { TokenManager } from "@/components/profile/token-manager";
@@ -19,6 +19,7 @@ export default async function TokensPage() {
         revokedAt: apiTokens.revokedAt,
       })
       .from(apiTokens)
+      .where(isNull(apiTokens.revokedAt))
       .orderBy(desc(apiTokens.createdAt)),
     db
       .select({
@@ -31,6 +32,7 @@ export default async function TokensPage() {
         revokedAt: oauthAuthorizations.revokedAt,
       })
       .from(oauthAuthorizations)
+      .where(isNull(oauthAuthorizations.revokedAt))
       .orderBy(desc(oauthAuthorizations.createdAt)),
   ]);
 
