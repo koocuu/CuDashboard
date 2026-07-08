@@ -8,7 +8,6 @@ import type { WorkItem, WorkStatus } from "@/lib/db/schema";
 import {
   NEXT_STATUS_BY_DOT,
   STATUS_META,
-  STATUS_OPTIONS,
 } from "@/lib/work-meta";
 import { cn } from "@/lib/utils";
 
@@ -106,24 +105,9 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
         )}
 
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <select
-            value={status}
-            onChange={(e) =>
-              onPatch(item.id, { status: e.target.value as WorkStatus })
-            }
-            className={cn(
-              "h-6 rounded-md border border-border bg-card px-1.5 font-mono text-[11px] outline-none transition-colors hover:border-primary focus-visible:border-primary",
-              meta.badge,
-            )}
-            aria-label="事项状态"
-            title="选择状态"
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {STATUS_META[option].label}
-              </option>
-            ))}
-          </select>
+          <span className={cn("font-mono text-[11px]", meta.badge)}>
+            {meta.label}
+          </span>
 
           {editingNote ? (
             <input
