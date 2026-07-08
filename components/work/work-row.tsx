@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
 import { Check, GripVertical, Pin, Trash2 } from "lucide-react";
+import { useState } from "react";
 import type { WorkItem, WorkStatus } from "@/lib/db/schema";
-import { NEXT_STATUS, STATUS_META } from "@/lib/work-meta";
+import { STATUS_META, STATUS_OPTIONS } from "@/lib/work-meta";
 import { cn } from "@/lib/utils";
 
 export interface WorkRowProps {
@@ -26,8 +26,13 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
 
   const status = item.status as WorkStatus;
   const meta = STATUS_META[status];
+  const closed = status === "done" || status === "archived";
   const [editingName, setEditingName] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
+
+  function toggleDone() {
+    onPatch(item.id, { status: closed ? "inbox" : "done" });
+  }
 
   return (
     <div
@@ -52,10 +57,10 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
       </button>
 
       <button
-        onClick={() => onPatch(item.id, { status: NEXT_STATUS[status] })}
+        onClick={toggleDone}
         className="mt-1 shrink-0"
-        aria-label={`状态:${meta.label},点击流转`}
-        title={`${meta.label} → ${STATUS_META[NEXT_STATUS[status]].label}`}
+        aria-label={closed ? "恢复到收件箱" : "标记完成"}
+        title={closed ? "恢复到收件箱" : "标记完成"}
       >
         <span
           className={cn(
@@ -63,7 +68,7 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
             meta.dot,
           )}
         >
-          {status === "done" && <Check className="h-2.5 w-2.5 text-white" />}
+          {closed && <Check className="h-2.5 w-2.5 text-white" />}
         </span>
       </button>
 
@@ -88,38 +93,59 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
             onClick={() => setEditingName(true)}
             className={cn(
               "cursor-text text-sm font-medium text-foreground",
-              (status === "done" || status === "archived") &&
-                "text-muted-foreground line-through",
+              closed && "text-muted-foreground line-through",
             )}
           >
             {item.name}
           </div>
         )}
 
-        {editingNote ? (
-          <input
-            autoFocus
-            defaultValue={item.note}
-            placeholder="一句话备注"
-            className="mt-1 w-full bg-transparent text-xs text-muted-foreground outline-none"
-            onBlur={(e) => {
-              setEditingNote(false);
-              const v = e.target.value;
-              if (v !== item.note) onPatch(item.id, { note: v });
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-              if (e.key === "Escape") setEditingNote(false);
-            }}
-          />
-        ) : (
-          <div
-            onClick={() => setEditingNote(true)}
-            className="mt-0.5 cursor-text text-xs text-muted-foreground"
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <select
+            value={status}
+            onChange={(e) =>
+              onPatch(item.id, { status: e.target.value as WorkStatus })
+            }
+            className={cn(
+              "h-6 rounded-md border border-border bg-card px-1.5 font-mono text-[11px] outline-none transition-colors hover:border-primary focus-visible:border-primary",
+              meta.badge,
+            )}
+            aria-label="事项状态"
+            title="显式选择状态"
           >
-            {item.note || <span className="opacity-50">+ 备注</span>}
-          </div>
-        )}
+            {STATUS_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {STATUS_META[option].label}
+              </option>
+            ))}
+          </select>
+
+          {editingNote ? (
+            <input
+              autoFocus
+              defaultValue={item.note}
+              placeholder="一句话备注"
+              className="min-w-40 flex-1 bg-transparent text-xs text-muted-foreground outline-none"
+              onBlur={(e) => {
+                setEditingNote(false);
+                const v = e.target.value;
+                if (v !== item.note) onPatch(item.id, { note: v });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape") setEditingNote(false);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingNote(true)}
+              className="min-w-0 flex-1 truncate text-left text-xs text-muted-foreground"
+            >
+              {item.note || <span className="opacity-50">+ 备注</span>}
+            </button>
+          )}
+        </div>
       </div>
 
       <button

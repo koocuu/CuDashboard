@@ -5,11 +5,11 @@ export const STATUS_META: Record<
   { label: string; dot: string; badge: string; group: string; chip: string }
 > = {
   inbox: {
-    label: "收件",
+    label: "收件箱",
     dot: "bg-muted-foreground",
     badge: "text-muted-foreground",
     chip: "bg-muted text-muted-foreground",
-    group: "收件",
+    group: "收件箱",
   },
   in_progress: {
     label: "进行中",
@@ -18,19 +18,19 @@ export const STATUS_META: Record<
     chip: "bg-[#EAF1EB] text-positive",
     group: "进行中",
   },
-  waiting: {
-    label: "等待外部",
-    dot: "bg-mist",
-    badge: "text-mist",
-    chip: "bg-[#EEF3FA] text-[#6F89AD]",
-    group: "等待外部",
-  },
   scheduled: {
     label: "排期",
     dot: "bg-mist",
     badge: "text-mist",
     chip: "bg-[#EEF3FA] text-[#6F89AD]",
     group: "排期",
+  },
+  waiting: {
+    label: "等待外部",
+    dot: "bg-mist",
+    badge: "text-mist",
+    chip: "bg-[#EEF3FA] text-[#6F89AD]",
+    group: "等待外部",
   },
   someday: {
     label: "想做未做",
@@ -63,12 +63,12 @@ export const ACTIVE_GROUP_ORDER: WorkStatus[] = [
   "someday",
 ];
 
-export const NEXT_STATUS: Record<WorkStatus, WorkStatus> = {
-  inbox: "in_progress",
-  in_progress: "scheduled",
-  scheduled: "waiting",
-  waiting: "someday",
-  someday: "done",
-  done: "archived",
-  archived: "inbox",
-};
+export const STATUS_OPTIONS = [
+  "inbox",
+  "in_progress",
+  "scheduled",
+  "waiting",
+  "someday",
+  "done",
+  "archived",
+] satisfies WorkStatus[];

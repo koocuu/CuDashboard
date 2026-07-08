@@ -15,13 +15,14 @@ export function QuickAdd() {
   const [done, setDone] = useState(false);
 
   async function submit() {
-    if (!text.trim() || busy) return;
+    const name = text.trim();
+    if (!name || busy) return;
     setBusy(true);
     try {
       const res = await fetch("/api/work-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: text.trim(), status: "someday" }),
+        body: JSON.stringify({ name, status: "inbox" }),
       });
       if (res.ok) {
         const { item } = (await res.json()) as { item: WorkItem };

@@ -25,7 +25,7 @@ export default async function AppLayout({
       workStats(),
     ]);
   } catch {
-    // 数据库未就绪时不阻塞页面渲染。
+    // Do not block rendering while the database is unavailable.
   }
 
   return (
@@ -40,7 +40,8 @@ export default async function AppLayout({
           </Link>
           {stats && (
             <span className="hidden truncate font-mono text-[11px] text-muted-foreground md:inline">
-              ACTIVE {String(stats.in_progress).padStart(2, "0")} · WAIT{" "}
+              收件 {String(stats.inbox).padStart(2, "0")} · 进行中{" "}
+              {String(stats.in_progress).padStart(2, "0")} · 等待{" "}
               {String(stats.waiting).padStart(2, "0")} ·{" "}
               {formatDate(new Date(), {
                 month: "2-digit",

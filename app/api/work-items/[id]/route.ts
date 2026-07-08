@@ -10,6 +10,14 @@ function parseId(param: string): number | null {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+function isWorkStatus(value: unknown): value is WorkStatus {
+  return typeof value === "string" && WORK_STATUSES.includes(value as WorkStatus);
+}
+
+function isClosedStatus(status: WorkStatus) {
+  return status === "done" || status === "archived";
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -25,20 +33,21 @@ export async function PATCH(
 
   if (typeof body.name === "string") {
     const name = body.name.trim();
-    if (!name)
+    if (!name) {
       return NextResponse.json({ error: "名称不能为空" }, { status: 400 });
+    }
     patch.name = name;
   }
+
   if (typeof body.note === "string") patch.note = body.note;
   if (typeof body.pinned === "boolean") patch.pinned = body.pinned;
-  if (typeof body.status === "string") {
-    if (!WORK_STATUSES.includes(body.status as WorkStatus)) {
+
+  if (body.status !== undefined) {
+    if (!isWorkStatus(body.status)) {
       return NextResponse.json({ error: "无效状态" }, { status: 400 });
     }
-    const status = body.status as WorkStatus;
-    patch.status = status;
-    // 进入完成时记录完成时间;离开完成状态清空
-    patch.doneAt = status === "done" ? new Date() : null;
+    patch.status = body.status;
+    patch.doneAt = isClosedStatus(body.status) ? new Date() : null;
   }
 
   const [item] = await db
@@ -61,7 +70,7 @@ export async function DELETE(
 
   const [item] = await db
     .update(workItems)
-    .set({ deletedAt: new Date() })
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(workItems.id, id), isNull(workItems.deletedAt)))
     .returning();
 

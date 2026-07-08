@@ -6,6 +6,13 @@ import { listWorkItems } from "@/lib/queries/work";
 
 export const runtime = "nodejs";
 
+function parseStatus(value: unknown): WorkStatus {
+  return typeof value === "string" &&
+    WORK_STATUSES.includes(value as WorkStatus)
+    ? (value as WorkStatus)
+    : "inbox";
+}
+
 export async function GET() {
   const items = await listWorkItems();
   return NextResponse.json({ items });
@@ -18,9 +25,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "名称不能为空" }, { status: 400 });
   }
 
-  const status: WorkStatus = WORK_STATUSES.includes(body.status)
-    ? body.status
-    : "someday";
+  const status = parseStatus(body.status);
 
   const [{ max }] = await db
     .select({ max: sql<number>`coalesce(max(${workItems.sortOrder}), 0)` })
@@ -35,7 +40,7 @@ export async function POST(req: NextRequest) {
       pinned: body.pinned === true,
       status,
       sortOrder: Number(max) + 1,
-      doneAt: status === "done" ? new Date() : null,
+      doneAt: status === "done" || status === "archived" ? new Date() : null,
     })
     .returning();
 

@@ -74,10 +74,10 @@ export function WorkBoard({
       const res = await fetch("/api/work-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, status: "someday" }),
+        body: JSON.stringify({ name, status: "inbox" }),
       });
       if (res.ok) {
-        const { item } = await res.json();
+        const { item } = (await res.json()) as { item: WorkItem };
         setItems((prev) => [...prev, item]);
         setNewName("");
       }
@@ -100,7 +100,7 @@ export function WorkBoard({
       setItems(prev);
       return;
     }
-    const { item } = await res.json();
+    const { item } = (await res.json()) as { item: WorkItem };
     setItems((cur) => cur.map((i) => (i.id === id ? item : i)));
   }
 
@@ -189,7 +189,7 @@ export function WorkBoard({
 
         {active.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            还没有进行中的事项,上面加一条吧。
+            还没有事项,先记一条进收件箱。
           </p>
         )}
 
