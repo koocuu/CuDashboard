@@ -3,6 +3,7 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import {
   OAUTH_TOOL_PERMISSIONS,
   getOAuthClient,
+  publicOrigin,
   redirectUriMatches,
   storeAuthorizationCode,
 } from "@/lib/oauth";
@@ -16,6 +17,7 @@ interface AuthorizationRequest {
   redirectUri: string;
   state: string;
   codeChallenge: string;
+  resource: string;
 }
 
 function escapeHtml(value: string) {
@@ -40,6 +42,7 @@ async function isLoggedIn(req: NextRequest) {
 
 async function parseAuthorizationParams(
   params: URLSearchParams,
+  origin: string,
 ): Promise<
   | { ok: true; value: AuthorizationRequest }
   | { ok: false; message: string; redirectUri?: string; state?: string }
@@ -50,6 +53,7 @@ async function parseAuthorizationParams(
   const state = params.get("state") ?? "";
   const codeChallenge = params.get("code_challenge") ?? "";
   const codeChallengeMethod = params.get("code_challenge_method") ?? "";
+  const resource = params.get("resource") ?? "";
 
   if (responseType !== "code") {
     return { ok: false, message: "response_type must be code" };
@@ -73,6 +77,32 @@ async function parseAuthorizationParams(
       state,
     };
   }
+  if (resource) {
+    try {
+      const expectedResource = `${origin}/api/mcp`;
+      const resourceUrl = new URL(resource);
+      const expectedUrl = new URL(expectedResource);
+      if (
+        resourceUrl.protocol !== expectedUrl.protocol ||
+        resourceUrl.host !== expectedUrl.host ||
+        resourceUrl.pathname !== "/api/mcp"
+      ) {
+        return {
+          ok: false,
+          message: "resource must point to this server's /api/mcp",
+          redirectUri,
+          state,
+        };
+      }
+    } catch {
+      return {
+        ok: false,
+        message: "resource is invalid",
+        redirectUri,
+        state,
+      };
+    }
+  }
 
   return {
     ok: true,
@@ -82,6 +112,7 @@ async function parseAuthorizationParams(
       redirectUri,
       state,
       codeChallenge,
+      resource,
     },
   };
 }
@@ -167,6 +198,7 @@ function authorizationPage(req: AuthorizationRequest) {
       <input type="hidden" name="redirect_uri" value="${escapeHtml(req.redirectUri)}" />
       <input type="hidden" name="state" value="${escapeHtml(req.state)}" />
       <input type="hidden" name="code_challenge" value="${escapeHtml(req.codeChallenge)}" />
+      <input type="hidden" name="resource" value="${escapeHtml(req.resource)}" />
       <div class="actions">
         <button name="decision" value="deny" type="submit">取消</button>
         <button class="primary" name="decision" value="approve" type="submit">授权连接</button>
@@ -196,7 +228,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const parsed = await parseAuthorizationParams(url.searchParams);
+  const parsed = await parseAuthorizationParams(
+    url.searchParams,
+    publicOrigin(req),
+  );
   if (!parsed.ok) {
     if (parsed.redirectUri) {
       return redirectWithOAuthError(
@@ -221,13 +256,19 @@ export async function POST(req: NextRequest) {
 
   const form = await req.formData();
   const params = new URLSearchParams();
-  for (const key of ["client_id", "redirect_uri", "state", "code_challenge"]) {
+  for (const key of [
+    "client_id",
+    "redirect_uri",
+    "state",
+    "code_challenge",
+    "resource",
+  ]) {
     params.set(key, String(form.get(key) ?? ""));
   }
   params.set("response_type", "code");
   params.set("code_challenge_method", "S256");
 
-  const parsed = await parseAuthorizationParams(params);
+  const parsed = await parseAuthorizationParams(params, publicOrigin(req));
   if (!parsed.ok) {
     if (parsed.redirectUri) {
       return redirectWithOAuthError(

@@ -146,27 +146,34 @@ export function validRedirectUri(value: string) {
   try {
     const url = new URL(value);
     if (url.protocol === "https:") return true;
-    if (
-      url.protocol === "http:" &&
-      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
-    ) {
-      return true;
-    }
+    if (url.protocol === "http:" && isLoopbackHost(url.hostname)) return true;
   } catch {
     return false;
   }
   return false;
 }
 
-function sameLoopbackIgnoringPort(registered: URL, requested: URL) {
+function isLoopbackHost(hostname: string) {
+  return ["localhost", "127.0.0.1", "::1", "[::1]"].includes(
+    hostname.toLowerCase(),
+  );
+}
+
+function sameLoopbackRedirect(
+  registered: URL,
+  requested: URL,
+  options: { ignorePort: boolean },
+) {
   const loopback =
     requested.protocol === "http:" &&
     registered.protocol === "http:" &&
-    ["localhost", "127.0.0.1"].includes(requested.hostname) &&
-    ["localhost", "127.0.0.1"].includes(registered.hostname);
+    isLoopbackHost(requested.hostname) &&
+    isLoopbackHost(registered.hostname);
+  const portMatches =
+    options.ignorePort || registered.port === requested.port;
   return (
     loopback &&
-    registered.hostname === requested.hostname &&
+    portMatches &&
     registered.pathname === requested.pathname &&
     registered.search === requested.search
   );
@@ -177,11 +184,24 @@ export function redirectUriMatches(client: OAuthClient, redirectUri: string) {
   return client.redirectUris.some((registered) => {
     if (registered === redirectUri) return true;
     try {
-      return sameLoopbackIgnoringPort(new URL(registered), new URL(redirectUri));
+      return sameLoopbackRedirect(new URL(registered), new URL(redirectUri), {
+        ignorePort: true,
+      });
     } catch {
       return false;
     }
   });
+}
+
+function authorizationRedirectUriMatches(stored: string, requested: string) {
+  if (stored === requested) return true;
+  try {
+    return sameLoopbackRedirect(new URL(stored), new URL(requested), {
+      ignorePort: false,
+    });
+  } catch {
+    return false;
+  }
 }
 
 export async function storeAuthorizationCode(input: {
@@ -263,7 +283,7 @@ export async function exchangeAuthorizationCode(input: {
   if (
     !storedCode ||
     storedCode.clientId !== input.clientId ||
-    storedCode.redirectUri !== input.redirectUri ||
+    !authorizationRedirectUriMatches(storedCode.redirectUri, input.redirectUri) ||
     storedCode.usedAt ||
     storedCode.expiresAt <= new Date() ||
     storedCode.codeChallengeMethod !== "S256" ||

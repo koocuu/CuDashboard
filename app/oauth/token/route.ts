@@ -6,6 +6,7 @@ import {
   oauthError,
   oauthJson,
   oauthOptions,
+  publicOrigin,
   refreshOAuthTokens,
 } from "@/lib/oauth";
 
@@ -34,6 +35,10 @@ export async function POST(req: NextRequest) {
 
   const grantType = String(form.get("grant_type") ?? "");
   const clientId = String(form.get("client_id") ?? "");
+  const resource = String(form.get("resource") ?? "");
+  if (resource && resource !== `${publicOrigin(req)}/api/mcp`) {
+    return oauthError("invalid_target", "resource must point to this server's /api/mcp");
+  }
   if (!clientId || !(await getOAuthClient(clientId))) {
     return oauthError("invalid_client", "Unknown client_id", 401);
   }
