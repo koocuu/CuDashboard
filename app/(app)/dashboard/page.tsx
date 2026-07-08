@@ -77,12 +77,12 @@ export default async function DashboardPage() {
         )}
 
         {backup?.status === "failed" && (
-          <Link href="/settings" className="block border-t pt-3 text-sm">
+          <div className="border-t pt-3 text-sm">
             <span className="text-sm text-muted-foreground">备份失败</span>
             <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
               {backup.message}
             </p>
-          </Link>
+          </div>
         )}
 
         <section className="border-t pt-4">

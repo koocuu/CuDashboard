@@ -66,7 +66,6 @@ app/
     work/           # 工作台账
     invest/         # 持仓一览
     profile/        # 画像、分发、提案、token
-    settings/       # MCP 信息
   api/
     auth/           # 登录 / 登出
     work-items/     # 工作事项 CRUD + reorder
@@ -127,17 +126,15 @@ lib/
 https://dashboard.koocuu.com/api/mcp
 ```
 
-在 dashboard 的 `画像 -> Token 管理` 里生成一个 API token。API token 默认用于读取画像、搜索库和提交画像修改提案。写入不会直接覆盖画像,只会创建待确认 proposal,需要在 dashboard 里查看 diff 并批准。
+MCP 地址可在 dashboard 的 `画像` 页标题栏直接复制。写入不会直接覆盖画像,只会创建待确认 proposal,需要在 dashboard 里查看 diff 并批准。
 
 在 claude.ai 中添加连接器:
 
-1. 打开 `设置 -> 连接器 -> 添加自定义连接器`。
+1. 打开 claude.ai 的 `设置 -> 连接器 -> 添加自定义连接器`。
 2. URL 填写 `https://dashboard.koocuu.com/api/mcp`。
-3. 鉴权选择 Bearer token,值填写 dashboard 生成的 API token。实际 HTTP 头为:
+3. 按页面提示完成 OAuth 授权。
 
-```text
-Authorization: Bearer <你的 API token>
-```
+Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画像 -> Token 管理` 里生成 API token,请求时传 `Authorization: Bearer <你的 API token>`。
 
 连接成功后 Claude 可使用三个工具:
 

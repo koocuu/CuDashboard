@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Settings } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { isAuthenticated } from "@/lib/auth/session";
 import { pendingProposalCount } from "@/lib/queries/profile";
@@ -61,13 +60,6 @@ export default async function AppLayout({
                 {proposalCount}
               </span>
             )}
-          </Link>
-          <Link
-            href="/settings"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
-            aria-label="设置"
-          >
-            <Settings className="h-4 w-4" />
           </Link>
           <LogoutButton />
         </div>
