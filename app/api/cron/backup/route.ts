@@ -14,11 +14,16 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "未授权" }, { status: 401 });
-    }
+  if (!secret) {
+    // fail-closed:未配置密钥时禁用接口,而不是放行
+    return NextResponse.json(
+      { error: "未配置 CRON_SECRET,备份接口已禁用" },
+      { status: 503 },
+    );
+  }
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "未授权" }, { status: 401 });
   }
 
   try {

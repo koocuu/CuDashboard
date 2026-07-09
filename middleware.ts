@@ -9,7 +9,7 @@ const PUBLIC_PATHS = ["/login", "/api/auth/login"];
 const BYPASS_PREFIXES = [
   "/.well-known",
   "/oauth",
-  "/c",
+  "/c/",
   "/api/cron",
   "/api/export",
   "/api/import",

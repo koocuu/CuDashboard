@@ -28,6 +28,8 @@ import { WorkRow } from "./work-row";
 
 const COMPLETED: WorkStatus[] = ["done"];
 const DROP_PREFIX = "work-status:";
+// 完成超过 60 天的事项自动从列表收起(数据仍保留,导出/备份可见)
+const DONE_VISIBLE_MS = 60 * 24 * 60 * 60 * 1000;
 
 function statusDropId(status: WorkStatus) {
   return `${DROP_PREFIX}${status}`;
@@ -99,9 +101,14 @@ export function WorkBoard({
   );
 
   const active = items.filter((i) => !COMPLETED.includes(i.status as WorkStatus));
-  const completed = items.filter((i) =>
+  const completedAll = items.filter((i) =>
     COMPLETED.includes(i.status as WorkStatus),
   );
+  const doneCutoff = Date.now() - DONE_VISIBLE_MS;
+  const completed = completedAll.filter(
+    (i) => !i.doneAt || new Date(i.doneAt).getTime() >= doneCutoff,
+  );
+  const hiddenDoneCount = completedAll.length - completed.length;
 
   async function addItem() {
     const name = newName.trim();
@@ -229,6 +236,7 @@ export function WorkBoard({
       )}
 
       <DndContext
+        id="work-board"
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={onDragStart}
@@ -327,6 +335,11 @@ export function WorkBoard({
             {completed.length === 0 && (
               <p className="rounded-lg border border-dashed py-3 text-center text-xs text-muted-foreground/70">
                 拖到这里完成
+              </p>
+            )}
+            {showCompleted && hiddenDoneCount > 0 && (
+              <p className="py-1 text-xs text-muted-foreground/70">
+                更早完成的 {hiddenDoneCount} 条已自动收起
               </p>
             )}
           </WorkGroupSection>

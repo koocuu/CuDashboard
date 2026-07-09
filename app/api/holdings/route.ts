@@ -25,7 +25,9 @@ export async function POST(req: NextRequest) {
       name,
       market,
       symbol: typeof b.symbol === "string" ? b.symbol.trim() : "",
-      positionPct: Number.isFinite(b.positionPct) ? Math.round(b.positionPct) : 0,
+      positionPct: Number.isFinite(b.positionPct)
+        ? Math.min(100, Math.max(0, Math.round(b.positionPct)))
+        : 0,
       costNote: typeof b.costNote === "string" ? b.costNote : "",
       thesisMd: typeof b.thesisMd === "string" ? b.thesisMd : "",
       watchPriceNote: typeof b.watchPriceNote === "string" ? b.watchPriceNote : "",
