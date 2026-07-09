@@ -24,6 +24,7 @@ import type { WorkItem, WorkStatus } from "@/lib/db/schema";
 import { ACTIVE_GROUP_ORDER, STATUS_META } from "@/lib/work-meta";
 import { cn } from "@/lib/utils";
 import { WORK_ITEM_CREATED_EVENT } from "@/components/quick-add";
+import { CategoryPicker } from "./category-picker";
 import { WorkRow } from "./work-row";
 
 const COMPLETED: WorkStatus[] = ["done"];
@@ -252,19 +253,11 @@ export function WorkBoard({
             onKeyDown={(e) => e.key === "Enter" && addItem()}
             placeholder="新增事项,回车添加"
           />
-          <Input
-            list="work-board-category-options"
+          <CategoryPicker
             value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addItem()}
-            placeholder="分类"
-            className="font-mono text-sm"
+            options={categories}
+            onChange={setNewCategory}
           />
-          <datalist id="work-board-category-options">
-            {categories.map((category) => (
-              <option key={category} value={category} />
-            ))}
-          </datalist>
           <Button onClick={addItem} disabled={!newName.trim() || adding} size="icon">
             <Plus className="h-4 w-4" />
           </Button>

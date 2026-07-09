@@ -10,6 +10,7 @@ import {
   STATUS_META,
 } from "@/lib/work-meta";
 import { cn } from "@/lib/utils";
+import { CategoryPicker } from "./category-picker";
 
 export interface WorkRowProps {
   item: WorkItem;
@@ -38,9 +39,7 @@ export function WorkRow({
   const done = status === "done";
   const nextStatus = NEXT_STATUS_BY_DOT[status];
   const [editingName, setEditingName] = useState(false);
-  const [editingCategory, setEditingCategory] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
-  const categoryListId = `work-category-options-${item.id}`;
 
   function advanceStatus() {
     onPatch(item.id, { status: nextStatus });
@@ -113,45 +112,12 @@ export function WorkRow({
         )}
 
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          {editingCategory ? (
-            <>
-              <input
-                autoFocus
-                list={categoryListId}
-                defaultValue={item.category}
-                placeholder="公司 / 个人 / 杂项"
-                className="w-24 bg-transparent font-mono text-[11px] text-muted-foreground outline-none"
-                onBlur={(e) => {
-                  setEditingCategory(false);
-                  const v = e.target.value.trim();
-                  if (v !== item.category) onPatch(item.id, { category: v });
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                  if (e.key === "Escape") setEditingCategory(false);
-                }}
-              />
-              <datalist id={categoryListId}>
-                {categoryOptions.map((option) => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEditingCategory(true)}
-              className={cn(
-                "font-mono text-[11px]",
-                item.category
-                  ? "text-foreground/70 hover:text-foreground"
-                  : "text-muted-foreground/50 hover:text-muted-foreground",
-              )}
-              title="编辑分类"
-            >
-              {item.category || "+ 分类"}
-            </button>
-          )}
+          <CategoryPicker
+            variant="inline"
+            value={item.category}
+            options={categoryOptions}
+            onChange={(category) => onPatch(item.id, { category })}
+          />
 
           <span className={cn("font-mono text-[11px]", meta.badge)}>
             {meta.label}
