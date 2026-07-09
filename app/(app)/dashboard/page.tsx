@@ -2,26 +2,34 @@ import Link from "next/link";
 import { QuickAdd } from "@/components/quick-add";
 import { MarkdownLite } from "@/components/ui/markdown-lite";
 import { WorkBoard } from "@/components/work/work-board";
-import type { ProfileLayer } from "@/lib/db/schema";
+import type { BackupRun, ProfileLayer } from "@/lib/db/schema";
 import { buildPositionSlices, donutGradient } from "@/lib/invest-chart";
 import { LAYER_META } from "@/lib/profile-meta";
 import { latestBackupRun } from "@/lib/queries/backup";
 import { investStats, listHoldings } from "@/lib/queries/invest";
 import { getAllLayers, listProposals } from "@/lib/queries/profile";
 import { listWorkItems } from "@/lib/queries/work";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatRelativeTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+// 兜底空数据保证首页可渲染,但把数据库错误记进日志,不再静默吞掉
+function logQueryError<T>(label: string, fallback: T) {
+  return (error: unknown): T => {
+    console.error(`dashboard: ${label} 查询失败`, error);
+    return fallback;
+  };
+}
 
 export default async function DashboardPage() {
   const [workItems, invest, holdings, layers, proposals, backup] =
     await Promise.all([
-      listWorkItems().catch(() => []),
-      investStats().catch(() => null),
-      listHoldings().catch(() => []),
-      getAllLayers().catch(() => []),
-      listProposals().catch(() => []),
-      latestBackupRun().catch(() => null),
+      listWorkItems().catch(logQueryError("work_items", [])),
+      investStats().catch(logQueryError("invest_stats", null)),
+      listHoldings().catch(logQueryError("holdings", [])),
+      getAllLayers().catch(logQueryError("profile_layers", [])),
+      listProposals().catch(logQueryError("proposals", [])),
+      latestBackupRun().catch(logQueryError("backup_runs", null)),
     ]);
 
   const statusDoc = layers.find((layer) => layer.layer === "status");
@@ -33,7 +41,13 @@ export default async function DashboardPage() {
   const { slices, total } = buildPositionSlices(holdings, 4);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.82fr)_minmax(0,1.28fr)] xl:grid-cols-[420px_minmax(0,1fr)]">
+    <div className="space-y-6">
+      {/* 移动端把快速录入放在首屏最顶上,桌面端仍在右栏 */}
+      <div className="lg:hidden">
+        <QuickAdd />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.82fr)_minmax(0,1.28fr)] xl:grid-cols-[420px_minmax(0,1fr)]">
       <aside className="space-y-5">
         <section className="rounded-xl border bg-card p-4">
           <div className="mb-3 flex items-center justify-between">
@@ -76,14 +90,7 @@ export default async function DashboardPage() {
           </Link>
         )}
 
-        {backup?.status === "failed" && (
-          <div className="border-t pt-3 text-sm">
-            <span className="text-sm text-muted-foreground">备份失败</span>
-            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-              {backup.message}
-            </p>
-          </div>
-        )}
+        <BackupStatus backup={backup} />
 
         <section className="border-t pt-4">
           <Link href="/invest" className="block">
@@ -176,7 +183,9 @@ export default async function DashboardPage() {
       </aside>
 
       <main className="space-y-4">
-        <QuickAdd />
+        <div className="hidden lg:block">
+          <QuickAdd />
+        </div>
 
         <section className="space-y-3">
           <div className="border-b pb-2">
@@ -187,6 +196,46 @@ export default async function DashboardPage() {
           <WorkBoard initialItems={workItems} showQuickAdd={false} />
         </section>
       </main>
+      </div>
+    </div>
+  );
+}
+
+// 备份状态常驻显示:不只报失败,长时间没跑(cron 停了)也要能看出来
+const BACKUP_STALE_MS = 48 * 60 * 60 * 1000;
+
+function BackupStatus({ backup }: { backup: BackupRun | null }) {
+  if (!backup) {
+    return (
+      <p className="border-t pt-3 font-mono text-[11px] text-muted-foreground">
+        备份 · 尚无记录
+      </p>
+    );
+  }
+
+  const failed = backup.status === "failed";
+  const stale =
+    Date.now() - new Date(backup.createdAt).getTime() > BACKUP_STALE_MS;
+  const ago = formatRelativeTime(backup.createdAt);
+
+  if (!failed && !stale) {
+    return (
+      <p className="border-t pt-3 font-mono text-[11px] text-muted-foreground">
+        备份 · {ago}
+      </p>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-primary/40 bg-card px-3 py-2">
+      <span className="font-mono text-[11px] text-primary">
+        {failed ? "备份失败" : "备份已停滞"} · {ago}
+      </span>
+      {failed && backup.message && (
+        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+          {backup.message}
+        </p>
+      )}
     </div>
   );
 }

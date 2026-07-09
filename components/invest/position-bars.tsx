@@ -46,8 +46,8 @@ export function PositionBars({ holdings }: { holdings: Holding[] }) {
                 style={{ backgroundColor: slice.color }}
               />
               <span className="truncate">{slice.label}</span>
-              <span className="ml-auto text-muted-foreground">
-                <span className="font-mono">{slice.value}%</span>
+              <span className="shrink-0 font-mono text-muted-foreground">
+                {slice.value}%
               </span>
             </div>
           ))}

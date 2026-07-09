@@ -24,7 +24,8 @@ export async function PATCH(
   if (typeof b.name === "string" && b.name.trim()) patch.name = b.name.trim();
   if (typeof b.symbol === "string") patch.symbol = b.symbol.trim();
   if (b.market === "cn" || b.market === "us") patch.market = b.market;
-  if (Number.isFinite(b.positionPct)) patch.positionPct = Math.round(b.positionPct);
+  if (Number.isFinite(b.positionPct))
+    patch.positionPct = Math.min(100, Math.max(0, Math.round(b.positionPct)));
   if (typeof b.costNote === "string") patch.costNote = b.costNote;
   if (typeof b.thesisMd === "string") patch.thesisMd = b.thesisMd;
   if (typeof b.watchPriceNote === "string") patch.watchPriceNote = b.watchPriceNote;

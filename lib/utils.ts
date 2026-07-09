@@ -23,3 +23,14 @@ export function formatDate(
     timeZone: "Asia/Shanghai",
   }).format(d);
 }
+
+/** 相对时间:刚刚 / N 分钟前 / N 小时前 / N 天前。 */
+export function formatRelativeTime(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const minutes = Math.floor((Date.now() - d.getTime()) / 60_000);
+  if (minutes < 1) return "刚刚";
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  return `${Math.floor(hours / 24)} 天前`;
+}
