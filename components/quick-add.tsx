@@ -1,10 +1,11 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkItem } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CategoryPicker } from "@/components/work/category-picker";
 
 export const WORK_ITEM_CREATED_EVENT = "console:work-item-created";
 
@@ -18,7 +19,6 @@ export function QuickAdd({
   const [category, setCategory] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
-  const listId = useId();
 
   async function submit() {
     const name = text.trim();
@@ -59,19 +59,11 @@ export function QuickAdd({
           onKeyDown={(e) => e.key === "Enter" && submit()}
           placeholder="想到什么?扔进来"
         />
-        <Input
-          list={listId}
+        <CategoryPicker
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="分类"
-          className="font-mono text-sm"
+          options={categoryOptions}
+          onChange={setCategory}
         />
-        <datalist id={listId}>
-          {categoryOptions.map((option) => (
-            <option key={option} value={option} />
-          ))}
-        </datalist>
         <Button
           onClick={submit}
           disabled={busy || !text.trim()}
