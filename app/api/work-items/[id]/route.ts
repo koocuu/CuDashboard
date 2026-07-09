@@ -45,6 +45,7 @@ export async function PATCH(
     patch.name = name;
   }
 
+  if (typeof body.category === "string") patch.category = body.category.trim();
   if (typeof body.note === "string") patch.note = body.note;
   if (typeof body.pinned === "boolean") patch.pinned = body.pinned;
 

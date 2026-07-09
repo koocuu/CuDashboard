@@ -30,6 +30,8 @@ const COMPLETED: WorkStatus[] = ["done"];
 const DROP_PREFIX = "work-status:";
 // 完成超过 60 天的事项自动从列表收起(数据仍保留,导出/备份可见)
 const DONE_VISIBLE_MS = 60 * 24 * 60 * 60 * 1000;
+const ALL_CATEGORIES = "__all__";
+const UNCATEGORIZED = "__none__";
 
 function statusDropId(status: WorkStatus) {
   return `${DROP_PREFIX}${status}`;
@@ -76,6 +78,7 @@ export function WorkBoard({
   const [showCompleted, setShowCompleted] = useState(false);
   const [adding, setAdding] = useState(false);
   const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState(ALL_CATEGORIES);
 
   useEffect(() => {
     setItems(initialItems);
@@ -100,8 +103,23 @@ export function WorkBoard({
     }),
   );
 
-  const active = items.filter((i) => !COMPLETED.includes(i.status as WorkStatus));
-  const completedAll = items.filter((i) =>
+  const categories = Array.from(
+    new Set(
+      items
+        .map((item) => item.category?.trim())
+        .filter((category): category is string => Boolean(category)),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "zh-CN"));
+  const hasUncategorized = items.some((item) => !item.category?.trim());
+  const categoryFilteredItems = items.filter((item) => {
+    if (categoryFilter === ALL_CATEGORIES) return true;
+    if (categoryFilter === UNCATEGORIZED) return !item.category?.trim();
+    return item.category?.trim() === categoryFilter;
+  });
+  const active = categoryFilteredItems.filter(
+    (i) => !COMPLETED.includes(i.status as WorkStatus),
+  );
+  const completedAll = categoryFilteredItems.filter((i) =>
     COMPLETED.includes(i.status as WorkStatus),
   );
   const doneCutoff = Date.now() - DONE_VISIBLE_MS;
@@ -235,6 +253,34 @@ export function WorkBoard({
         </div>
       )}
 
+      {(categories.length > 0 || hasUncategorized) && (
+        <div className="flex flex-wrap items-center gap-1 border-b pb-2 text-xs">
+          <CategoryChip
+            active={categoryFilter === ALL_CATEGORIES}
+            onClick={() => setCategoryFilter(ALL_CATEGORIES)}
+          >
+            全部
+          </CategoryChip>
+          {categories.map((category) => (
+            <CategoryChip
+              key={category}
+              active={categoryFilter === category}
+              onClick={() => setCategoryFilter(category)}
+            >
+              {category}
+            </CategoryChip>
+          ))}
+          {hasUncategorized && (
+            <CategoryChip
+              active={categoryFilter === UNCATEGORIZED}
+              onClick={() => setCategoryFilter(UNCATEGORIZED)}
+            >
+              未分类
+            </CategoryChip>
+          )}
+        </div>
+      )}
+
       <DndContext
         id="work-board"
         sensors={sensors}
@@ -293,7 +339,9 @@ export function WorkBoard({
 
         {active.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            还没有事项,先记一条。
+            {categoryFilter === ALL_CATEGORIES
+              ? "还没有事项,先记一条。"
+              : "这个分类下没有未完成事项。"}
           </p>
         )}
 
@@ -346,6 +394,31 @@ export function WorkBoard({
         )}
       </DndContext>
     </div>
+  );
+}
+
+function CategoryChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-2 py-0.5 transition-colors",
+        active
+          ? "border-primary bg-[#FBE7E1] text-primary"
+          : "border-border text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

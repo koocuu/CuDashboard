@@ -30,7 +30,7 @@ export async function searchAll(q: string, limit = 30): Promise<SearchHit[]> {
       .where(
         and(
           isNull(workItems.deletedAt),
-          sql`(${workItems.name} ILIKE ${term} OR ${workItems.note} ILIKE ${term})`,
+          sql`(${workItems.name} ILIKE ${term} OR ${workItems.note} ILIKE ${term} OR ${workItems.category} ILIKE ${term})`,
         ),
       )
       .limit(limit),
@@ -62,7 +62,7 @@ export async function searchAll(q: string, limit = 30): Promise<SearchHit[]> {
       kind: "工作",
       id: row.id,
       title: row.name,
-      snippet: snip(row.note),
+      snippet: snip([row.category, row.note].filter(Boolean).join(" · ")),
     });
   }
   for (const row of holdingRows) {

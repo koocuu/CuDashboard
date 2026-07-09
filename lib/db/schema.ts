@@ -21,6 +21,7 @@ export const workItems = pgTable(
     id: serial("id").primaryKey(),
     name: text("name").notNull(),
     status: text("status").notNull().default("someday"),
+    category: text("category").notNull().default(""),
     note: text("note").notNull().default(""),
     pinned: boolean("pinned").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -35,6 +36,7 @@ export const workItems = pgTable(
   },
   (t) => ({
     statusIdx: index("work_items_status_idx").on(t.status),
+    categoryIdx: index("work_items_category_idx").on(t.category),
     sortIdx: index("work_items_sort_idx").on(t.sortOrder),
   }),
 );

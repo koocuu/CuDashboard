@@ -32,6 +32,7 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
   const done = status === "done";
   const nextStatus = NEXT_STATUS_BY_DOT[status];
   const [editingName, setEditingName] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
 
   function advanceStatus() {
@@ -105,6 +106,38 @@ export function WorkRow({ item, onPatch, onDelete }: WorkRowProps) {
         )}
 
         <div className="mt-1 flex flex-wrap items-center gap-2">
+          {editingCategory ? (
+            <input
+              autoFocus
+              defaultValue={item.category}
+              placeholder="公司 / 个人 / 杂项"
+              className="w-24 bg-transparent font-mono text-[11px] text-muted-foreground outline-none"
+              onBlur={(e) => {
+                setEditingCategory(false);
+                const v = e.target.value.trim();
+                if (v !== item.category) onPatch(item.id, { category: v });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape") setEditingCategory(false);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingCategory(true)}
+              className={cn(
+                "font-mono text-[11px]",
+                item.category
+                  ? "text-foreground/70 hover:text-foreground"
+                  : "text-muted-foreground/50 hover:text-muted-foreground",
+              )}
+              title="编辑分类"
+            >
+              {item.category || "+ 分类"}
+            </button>
+          )}
+
           <span className={cn("font-mono text-[11px]", meta.badge)}>
             {meta.label}
           </span>

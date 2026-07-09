@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     .insert(workItems)
     .values({
       name,
+      category: typeof body.category === "string" ? body.category.trim() : "",
       note: typeof body.note === "string" ? body.note : "",
       pinned: body.pinned === true,
       status,
