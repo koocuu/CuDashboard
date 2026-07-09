@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/logout-button";
-import { SearchBox } from "@/components/search-box";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -59,10 +58,7 @@ export function AppTopNav({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
-        <SearchBox />
-        <LogoutButton />
-      </div>
+      <LogoutButton />
     </header>
   );
 }
