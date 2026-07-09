@@ -39,12 +39,19 @@ export default async function DashboardPage() {
   const pending = proposals.filter((p) => p.status === "pending");
   const recentWrites = proposals.slice(0, 5);
   const { slices, total } = buildPositionSlices(holdings, 4);
+  const categoryOptions = Array.from(
+    new Set(
+      workItems
+        .map((item) => item.category?.trim())
+        .filter((category): category is string => Boolean(category)),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "zh-CN"));
 
   return (
     <div className="space-y-6">
       {/* 移动端把快速录入放在首屏最顶上,桌面端仍在右栏 */}
       <div className="lg:hidden">
-        <QuickAdd />
+        <QuickAdd categoryOptions={categoryOptions} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.82fr)_minmax(0,1.28fr)] xl:grid-cols-[420px_minmax(0,1fr)]">
@@ -184,7 +191,7 @@ export default async function DashboardPage() {
 
       <main className="space-y-4">
         <div className="hidden lg:block">
-          <QuickAdd />
+          <QuickAdd categoryOptions={categoryOptions} />
         </div>
 
         <section className="space-y-3">

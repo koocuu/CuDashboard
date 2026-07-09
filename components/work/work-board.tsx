@@ -75,6 +75,7 @@ export function WorkBoard({
 }) {
   const [items, setItems] = useState<WorkItem[]>(initialItems);
   const [newName, setNewName] = useState("");
+  const [newCategory, setNewCategory] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
   const [adding, setAdding] = useState(false);
   const [draggingId, setDraggingId] = useState<number | null>(null);
@@ -136,7 +137,11 @@ export function WorkBoard({
       const res = await fetch("/api/work-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, status: "someday" }),
+        body: JSON.stringify({
+          name,
+          status: "someday",
+          category: newCategory.trim(),
+        }),
       });
       if (res.ok) {
         const { item } = (await res.json()) as { item: WorkItem };
@@ -240,13 +245,26 @@ export function WorkBoard({
   return (
     <div className="space-y-3">
       {showQuickAdd && (
-        <div className="flex gap-2">
+        <div className="grid gap-2 sm:grid-cols-[1fr_8rem_auto]">
           <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
             placeholder="新增事项,回车添加"
           />
+          <Input
+            list="work-board-category-options"
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addItem()}
+            placeholder="分类"
+            className="font-mono text-sm"
+          />
+          <datalist id="work-board-category-options">
+            {categories.map((category) => (
+              <option key={category} value={category} />
+            ))}
+          </datalist>
           <Button onClick={addItem} disabled={!newName.trim() || adding} size="icon">
             <Plus className="h-4 w-4" />
           </Button>
@@ -322,6 +340,7 @@ export function WorkBoard({
                     <WorkRow
                       key={item.id}
                       item={item}
+                      categoryOptions={categories}
                       onPatch={patchItem}
                       onDelete={deleteItem}
                     />
@@ -373,6 +392,7 @@ export function WorkBoard({
                     <WorkRow
                       key={item.id}
                       item={item}
+                      categoryOptions={categories}
                       onPatch={patchItem}
                       onDelete={deleteItem}
                     />
