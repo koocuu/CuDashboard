@@ -6,6 +6,13 @@ import { verifyOAuthAccessToken } from "@/lib/oauth";
 import { searchAll } from "@/lib/queries/search";
 import { createProposal } from "@/lib/proposals";
 import { isValidLayer } from "@/lib/queries/profile";
+import {
+  createHoldingSnapshotProposal,
+  holdingSnapshotDiff,
+  holdingSnapshotItemSchema,
+  normalizeHoldingSnapshot,
+} from "@/lib/holding-proposals";
+import { listHoldings } from "@/lib/queries/invest";
 import type { ProfileLayer } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
@@ -62,6 +69,54 @@ const mcpHandler = createMcpHandler(
           .map((hit) => `[${hit.kind}] #${hit.id} ${hit.title} - ${hit.snippet}`)
           .join("\n");
         return textResult(text);
+      },
+    );
+
+    server.registerTool(
+      "propose_holdings_snapshot",
+      {
+        title: "Propose Holdings Snapshot",
+        description:
+          "提交一次完整持仓快照的待确认提案，用于月度更新真实仓位。此工具绝不会直接写入 holdings；用户必须在 dashboard 的投资页查看变更并批准后才会同步。holdings 必须包含当前全部活跃仓位（含现金）；批准时未列出的活跃仓位将被移出持仓。需要 write 权限。",
+        inputSchema: {
+          holdings: z
+            .array(holdingSnapshotItemSchema)
+            .min(1)
+            .describe("当前全部活跃持仓。每行必须有稳定 symbol、market、name 和 position_pct；合计应接近 100%。"),
+          summary: z
+            .string()
+            .min(1)
+            .describe("本次更新的简短说明，例如“2026-08 月度审计后的实际持仓”。"),
+        },
+      },
+      async ({ holdings, summary }, extra) => {
+        const scopes = extra.authInfo?.scopes ?? [];
+        if (!scopes.includes("write")) {
+          return textResult("错误：此 token 无写权限，无法提交持仓更新提案。", true);
+        }
+
+        try {
+          const snapshot = normalizeHoldingSnapshot(holdings);
+          const current = await listHoldings();
+          const diff = holdingSnapshotDiff(current, snapshot);
+          const proposal = await createHoldingSnapshotProposal({
+            snapshot,
+            summary,
+            source: "mcp",
+            sourceName:
+              typeof extra.authInfo?.extra?.tokenName === "string"
+                ? extra.authInfo.extra.tokenName
+                : "mcp",
+          });
+          return textResult(
+            `已创建待确认持仓提案 #${proposal.id}：${diff.join("；")}。请用户在 dashboard 的投资页确认，批准前真实持仓不会改变。`,
+          );
+        } catch (error) {
+          return textResult(
+            `错误：${error instanceof Error ? error.message : "持仓快照无效"}`,
+            true,
+          );
+        }
       },
     );
 

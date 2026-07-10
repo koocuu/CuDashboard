@@ -52,7 +52,7 @@ npm run dev
 - 画像:五层 Markdown、完整版/通用版/自定义分发、一键复制、版本历史、回滚
 - Proposal:REST/write token、粘贴更新块、MCP 三条写入通道,全部需用户 diff 确认
 - Token:read/write token 生成、吊销、最后使用时间
-- MCP:`get_profile` / `search_entries` / `propose_profile_update`
+- MCP:`get_profile` / `search_entries` / `propose_profile_update` / `propose_holdings_snapshot`
 - 导入导出:`/api/import` JSON 导入,`/api/export` 全量 Markdown ZIP
 - 备份:Vercel Cron 每日全量 Markdown 快照到 GitHub 私库
 - Demo seed:`npm run seed:demo` 导入 `console-seed-data.md` 对应的工作事项、持仓、画像层和一条 pending proposal
@@ -141,3 +141,4 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 - `get_profile`: 读取画像层,可用 `layers` 指定 `core/investing/creative/status/private`。
 - `search_entries`: 搜索工作事项、持仓和通用条目。
 - `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。
+- `propose_holdings_snapshot`: 提交完整持仓快照的待确认提案。需要写权限，用户在投资页批准后才会同步；未列出的活跃仓位会被移出快照。

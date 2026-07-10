@@ -280,6 +280,30 @@ export const holdings = pgTable("holdings", {
 });
 export type Holding = typeof holdings.$inferSelect;
 
+/**
+ * MCP 或自动化提交的完整持仓快照。批准前不触碰真实 holdings，避免 AI
+ * 将建议直接写入资产数据。
+ */
+export const holdingProposals = pgTable(
+  "holding_proposals",
+  {
+    id: serial("id").primaryKey(),
+    snapshot: jsonb("snapshot").notNull(),
+    summary: text("summary").notNull().default(""),
+    source: text("source").notNull().default("mcp"),
+    sourceName: text("source_name"),
+    status: text("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (t) => ({
+    statusIdx: index("holding_proposals_status_idx").on(t.status),
+  }),
+);
+export type HoldingProposal = typeof holdingProposals.$inferSelect;
+
 // ============================================================
 // v2 预留:entries 由 MCP 写入,暂不做手动内容板块 UI
 // ============================================================
