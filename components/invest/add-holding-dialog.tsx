@@ -18,7 +18,7 @@ export function AddHoldingDialog({
 }) {
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
-  const [market, setMarket] = useState<"cn" | "us">("cn");
+  const [market, setMarket] = useState<"cn" | "us" | "other">("cn");
   const [positionPct, setPositionPct] = useState("");
   const [thesis, setThesis] = useState("");
   const [busy, setBusy] = useState(false);
@@ -70,7 +70,7 @@ export function AddHoldingDialog({
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border p-0.5 text-sm">
-            {(["cn", "us"] as const).map((m) => (
+            {(["cn", "us", "other"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMarket(m)}
@@ -78,7 +78,7 @@ export function AddHoldingDialog({
                   market === m ? "bg-muted text-foreground" : "text-muted-foreground"
                 }`}
               >
-                {m === "cn" ? "A股" : "美股"}
+                {m === "cn" ? "A股" : m === "us" ? "美股" : "其他"}
               </button>
             ))}
           </div>
@@ -86,6 +86,7 @@ export function AddHoldingDialog({
             <div className="flex items-center gap-1">
               <Input
                 type="number"
+                step="0.01"
                 value={positionPct}
                 onChange={(e) => setPositionPct(e.target.value)}
                 placeholder="仓位"

@@ -7,6 +7,7 @@ import {
   timestamp,
   index,
   jsonb,
+  real,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -264,7 +265,7 @@ export const holdings = pgTable("holdings", {
   market: text("market").notNull(), // cn / us
   symbol: text("symbol").notNull().default(""),
   name: text("name").notNull(),
-  positionPct: integer("position_pct").notNull().default(0), // 仓位占比(整数百分比)
+  positionPct: real("position_pct").notNull().default(0), // 仓位占比(百分比,支持小数)
   costNote: text("cost_note").notNull().default(""),
   thesisMd: text("thesis_md").notNull().default(""), // 买入逻辑
   status: text("status").notNull().default("active"), // active / watching / exited

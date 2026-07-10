@@ -12,6 +12,10 @@ const CN_COLORS = ["#E2694E", "#EF8972", "#F3A18F", "#D85B43"];
 const US_COLORS = ["#8DA3C4", "#A5B5CF", "#BDCADB", "#748DB4"];
 const OTHER_COLORS = ["#B8AEA2", "#CCC4BA"];
 
+function pct(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
 export function colorForHolding(holding: Pick<Holding, "market">, index: number) {
   if (holding.market === "cn") return CN_COLORS[index % CN_COLORS.length];
   if (holding.market === "us") return US_COLORS[index % US_COLORS.length];
@@ -27,13 +31,13 @@ export function buildPositionSlices(holdings: Holding[], limit = 4) {
   const slices: PositionSlice[] = top.map((holding, index) => ({
     key: String(holding.id),
     label: holding.name,
-    value: holding.positionPct,
+    value: pct(holding.positionPct),
     color: colorForHolding(holding, index),
     market: holding.market,
   }));
 
   const rest = active.slice(limit);
-  const restValue = rest.reduce((sum, h) => sum + h.positionPct, 0);
+  const restValue = pct(rest.reduce((sum, h) => sum + h.positionPct, 0));
   if (restValue > 0) {
     slices.push({
       key: "other-holdings",
@@ -44,8 +48,8 @@ export function buildPositionSlices(holdings: Holding[], limit = 4) {
     });
   }
 
-  const total = active.reduce((sum, h) => sum + h.positionPct, 0);
-  const cash = Math.max(0, 100 - total);
+  const total = pct(active.reduce((sum, h) => sum + h.positionPct, 0));
+  const cash = total >= 99.9 ? 0 : pct(Math.max(0, 100 - total));
   if (cash > 0) {
     slices.push({
       key: "cash",

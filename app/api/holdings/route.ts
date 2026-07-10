@@ -5,6 +5,12 @@ import { listHoldings } from "@/lib/queries/invest";
 
 export const runtime = "nodejs";
 
+function parsePct(value: unknown) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(100, Math.max(0, Math.round(n * 100) / 100));
+}
+
 export async function GET() {
   return NextResponse.json({ holdings: await listHoldings() });
 }
@@ -14,7 +20,7 @@ export async function POST(req: NextRequest) {
   const name = typeof b.name === "string" ? b.name.trim() : "";
   if (!name) return NextResponse.json({ error: "名称不能为空" }, { status: 400 });
 
-  const market = b.market === "us" ? "us" : "cn";
+  const market = ["cn", "us", "other"].includes(b.market) ? b.market : "cn";
   const status = ["active", "watching", "exited"].includes(b.status)
     ? b.status
     : "active";
@@ -25,9 +31,7 @@ export async function POST(req: NextRequest) {
       name,
       market,
       symbol: typeof b.symbol === "string" ? b.symbol.trim() : "",
-      positionPct: Number.isFinite(b.positionPct)
-        ? Math.min(100, Math.max(0, Math.round(b.positionPct)))
-        : 0,
+      positionPct: parsePct(b.positionPct),
       costNote: typeof b.costNote === "string" ? b.costNote : "",
       thesisMd: typeof b.thesisMd === "string" ? b.thesisMd : "",
       watchPriceNote: typeof b.watchPriceNote === "string" ? b.watchPriceNote : "",

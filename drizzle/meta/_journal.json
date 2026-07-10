@@ -50,6 +50,13 @@
       "when": 1783645200000,
       "tag": "0006_work_item_category",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783731600000,
+      "tag": "0007_holding_position_pct_real",
+      "breakpoints": true
     }
   ]
 }

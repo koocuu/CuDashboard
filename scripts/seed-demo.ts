@@ -51,76 +51,91 @@ const workSeed: Array<{
   },
 ];
 
-const holdingSeed = [
+const holdingSeed: Array<{
+  market: string;
+  symbol: string;
+  name: string;
+  positionPct: number;
+  status: string;
+  thesisMd: string;
+  watchPriceNote?: string;
+}> = [
   {
     market: "cn",
-    symbol: "300308",
-    name: "中际旭创",
-    positionPct: 20,
+    symbol: "CN-CPO",
+    name: "A股CPO",
+    positionPct: 38.82,
     status: "active",
-    thesisMd: "CPO/光互连主线核心标的。AI 算力互连需求驱动,光模块龙头。",
+    thesisMd: "中航机遇领航C、永赢科技智选C、华泰柏瑞质量成长C、远东股份。CPO/光互连主线仓位。",
   },
   {
     market: "cn",
-    symbol: "300502",
-    name: "新易盛",
-    positionPct: 12,
+    symbol: "CN-MEM",
+    name: "A股存储",
+    positionPct: 16.7,
     status: "active",
-    thesisMd: "CPO 主线第二仓位,高速光模块弹性标的。",
+    thesisMd: "永赢先锋半导体智选C。A股存储周期仓位。",
   },
   {
     market: "cn",
-    symbol: "002371",
-    name: "北方华创",
-    positionPct: 10,
+    symbol: "CN-EQUIP",
+    name: "A股半设",
+    positionPct: 7.84,
     status: "active",
-    thesisMd: "半导体设备次线,国产替代逻辑,长期持有。",
+    thesisMd: "东方人工智能主题C、半导设备个股。A股半导体设备仓位。",
   },
   {
-    market: "cn",
-    symbol: "000000",
-    name: "存储标的(示例)",
+    market: "us",
+    symbol: "QQQ",
+    name: "QQQ",
+    positionPct: 9.81,
+    status: "active",
+    thesisMd: "五只纳指基金。美股科技指数底仓。",
+  },
+  {
+    market: "us",
+    symbol: "US-SEMI",
+    name: "美股半导体",
     positionPct: 8,
     status: "active",
-    thesisMd: "存储周期持有仓,不加仓不减仓,等周期。",
+    thesisMd: "NVDA、MU、SNDK。美股半导体/存储个股仓位。",
   },
   {
     market: "us",
-    symbol: "NVDA",
-    name: "NVIDIA",
-    positionPct: 25,
+    symbol: "US-ETF",
+    name: "美股ETF",
+    positionPct: 9.08,
     status: "active",
-    thesisMd: "美股锚定仓位,AI 算力核心。",
+    thesisMd: "SMH、SOXX、DRAM。美股半导体 ETF 仓位。",
   },
   {
-    market: "us",
-    symbol: "SMH",
-    name: "VanEck 半导体 ETF",
-    positionPct: 15,
+    market: "other",
+    symbol: "BOND",
+    name: "债券",
+    positionPct: 2,
     status: "active",
-    thesisMd: "半导体行业 beta,平滑个股波动。",
+    thesisMd: "兴业120天债券A。防守仓位。",
   },
   {
-    market: "us",
-    symbol: "QQQM",
-    name: "Invesco 纳指 ETF",
-    positionPct: 10,
+    market: "other",
+    symbol: "GOLD",
+    name: "黄金",
+    positionPct: 2.21,
     status: "active",
-    thesisMd: "指数底仓。",
+    thesisMd: "黄金。防守仓位。",
   },
   {
-    market: "cn",
-    symbol: "688000",
-    name: "观察标的(示例)",
-    positionPct: 0,
-    status: "watching",
-    thesisMd: "观察池示例:记录想买的理由与当时价格,供事后验证冲动质量。",
-    watchPriceNote: "示例占位,导入后按真实观察价格修改。",
+    market: "other",
+    symbol: "CASH",
+    name: "现金",
+    positionPct: 5.53,
+    status: "active",
+    thesisMd: "现金/货基。",
   },
 ];
 
 const statusContent =
-  "## 近期状态(2026-07)\n\n**主线**:个人控制台系统 Console 进入开发验收阶段(Phase 1-2),由 AI 结对开发,目标是替代记事本并建立跨 AI 的画像分发能力。\n\n**工作**:ANR 治理已完成待外部确认;选本共创系统 P0 落地,P1 排期中;Engage SDK 与 Launcher 性能优化在排期。\n\n**创作**:碳基灵感收容所推进'硅基生命的致命弱点'方向(参数固化 vs 人类经验自改写),棱角计划持续更新。\n\n**投资**:仓位结构稳定(CPO 主线 + 设备次线 + 存储持有,美股 NVDA/SMH/QQQM 锚定),当前纪律是不做叙事驱动的反应式调仓。\n\n**基调**:平稳偏投入,周末在恢复 dates 节奏。";
+  "## 近期状态(2026-07)\n\n**主线**:个人控制台系统 Console 进入开发验收阶段(Phase 1-2),由 AI 结对开发,目标是替代记事本并建立跨 AI 的画像分发能力。\n\n**工作**:ANR 治理已完成待外部确认;选本共创系统 P0 落地,P1 排期中;Engage SDK 与 Launcher 性能优化在排期。\n\n**创作**:碳基灵感收容所推进'硅基生命的致命弱点'方向(参数固化 vs 人类经验自改写),棱角计划持续更新。\n\n**投资**:仓位结构按 A股CPO / A股存储 / A股半设 / QQQ / 美股半导体 / 美股ETF / 黄金 / 债券 / 现金 聚合维护,当前纪律是不做叙事驱动的反应式调仓。\n\n**基调**:平稳偏投入,周末在恢复 dates 节奏。";
 
 const layerSeed: Array<{ layer: ProfileLayer; contentMd: string }> = [
   { layer: "status", contentMd: statusContent },

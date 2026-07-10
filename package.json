@@ -12,7 +12,8 @@
     "db:trgm": "tsx scripts/trgm-indexes.ts",
     "db:push": "drizzle-kit push",
     "hash": "tsx scripts/hash-password.ts",
-    "seed:demo": "tsx scripts/seed-demo.ts"
+    "seed:demo": "tsx scripts/seed-demo.ts",
+    "sync:holdings:2026-07": "tsx scripts/sync-holdings-2026-07.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

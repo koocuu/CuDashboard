@@ -6,7 +6,11 @@ import type { Holding } from "@/lib/db/schema";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-const MARKET_LABEL: Record<string, string> = { cn: "A股", us: "美股" };
+const MARKET_LABEL: Record<string, string> = {
+  cn: "A股",
+  us: "美股",
+  other: "防守/现金",
+};
 
 export function HoldingList({
   holdings,
@@ -19,7 +23,7 @@ export function HoldingList({
   onUpdate: (h: Holding) => void;
   onDelete: (id: number) => void;
 }) {
-  const markets = ["cn", "us"] as const;
+  const markets = ["cn", "us", "other"] as const;
 
   async function patch(id: number, body: Partial<Holding>) {
     const res = await fetch(`/api/holdings/${id}`, {
@@ -119,10 +123,14 @@ function HoldingRow({
           <div className="flex items-center gap-1 text-sm">
             <input
               type="number"
+              step="0.01"
               defaultValue={h.positionPct}
-              className="w-12 rounded-lg border bg-transparent px-1 py-0.5 text-right font-mono text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              className="w-16 rounded-lg border bg-transparent px-1 py-0.5 text-right font-mono text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               onBlur={(e) => {
-                const v = Math.round(Number(e.target.value));
+                const raw = Number(e.target.value);
+                const v = Number.isFinite(raw)
+                  ? Math.round(raw * 100) / 100
+                  : h.positionPct;
                 if (v !== h.positionPct) onPatch(h.id, { positionPct: v });
               }}
             />
