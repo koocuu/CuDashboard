@@ -2,6 +2,11 @@ import "dotenv/config";
 import { and, eq, isNull, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { holdings } from "@/lib/db/schema";
+import { renderMonthlyReview } from "@/lib/invest-review-template";
+import {
+  getInvestReviewByMonth,
+  upsertInvestReview,
+} from "@/lib/queries/invest-reviews";
 
 const targetHoldings = [
   {
@@ -108,6 +113,25 @@ async function main() {
   }
 
   console.log(`✓ holdings synced: ${targetHoldings.length} rows, total ¥${total.toLocaleString("zh-CN")}`);
+
+  const month = "2026-07";
+  const existing = await getInvestReviewByMonth(month);
+  const contentMd =
+    existing?.contentMd && existing.contentMd.includes("本月结论")
+      ? existing.contentMd
+      : renderMonthlyReview(month, {
+          conclusion:
+            "仓位按金额维护：A股CPO / A股存储 / A股半设 / QQQ / 美股半导体 / 美股存储 / 债券 / 黄金 / 现金。总资产含现金余额，占比由金额自动计算。当前纪律是不做叙事驱动的反应式调仓。",
+          triggers_and_rules:
+            "只按金额更新持仓；比例只读。现金必须显式计入总资产。月度更新走 MCP propose_monthly_investment_update，批准后才同步持仓与审计快照。",
+          actions:
+            "纠正金额优先模型：美股拆为 QQQ、美股半导体、美股存储；同步 2026-07 九项金额合计 ¥904,646，并刷新同月快照。",
+          next_month_checks:
+            "核验各桶金额是否仍与券商/基金账户一致；确认现金余额是否需要再平衡；检查半导体与存储主线是否仍满足持有逻辑。",
+        });
+
+  await upsertInvestReview({ month, contentMd, refreshSnapshot: true });
+  console.log(`✓ ${month} monthly review snapshot refreshed`);
 }
 
 main().catch((err) => {
