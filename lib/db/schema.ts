@@ -265,7 +265,8 @@ export const holdings = pgTable("holdings", {
   market: text("market").notNull(), // cn / us
   symbol: text("symbol").notNull().default(""),
   name: text("name").notNull(),
-  positionPct: real("position_pct").notNull().default(0), // 仓位占比(百分比,支持小数)
+  amountCny: real("amount_cny").notNull().default(0), // 当前折人民币金额，是仓位计算的主数据
+  positionPct: real("position_pct").notNull().default(0), // 兼容旧导出；页面占比由 amount_cny 实时计算
   costNote: text("cost_note").notNull().default(""),
   thesisMd: text("thesis_md").notNull().default(""), // 买入逻辑
   status: text("status").notNull().default("active"), // active / watching / exited
@@ -289,6 +290,8 @@ export const holdingProposals = pgTable(
   {
     id: serial("id").primaryKey(),
     snapshot: jsonb("snapshot").notNull(),
+    month: text("month"),
+    reviewData: jsonb("review_data"),
     summary: text("summary").notNull().default(""),
     source: text("source").notNull().default("mcp"),
     sourceName: text("source_name"),

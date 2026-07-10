@@ -111,7 +111,7 @@ export default async function DashboardPage() {
             <div className="mt-4 flex items-center gap-5">
               <PositionDonut
                 slices={slices}
-                total={invest?.activePositionPct ?? total}
+                total={total}
               />
               <div className="min-w-0 flex-1 space-y-2">
                 {slices.map((slice) => (

@@ -8,7 +8,7 @@ const targetHoldings = [
     market: "cn",
     symbol: "CN-CPO",
     name: "A股CPO",
-    positionPct: 38.82,
+    amountCny: 351262,
     thesisMd:
       "中航机遇领航C、永赢科技智选C、华泰柏瑞质量成长C、远东股份。CPO/光互连主线仓位。",
   },
@@ -16,56 +16,56 @@ const targetHoldings = [
     market: "cn",
     symbol: "CN-MEM",
     name: "A股存储",
-    positionPct: 16.7,
+    amountCny: 151064,
     thesisMd: "永赢先锋半导体智选C。A股存储周期仓位。",
   },
   {
     market: "cn",
     symbol: "CN-EQUIP",
     name: "A股半设",
-    positionPct: 7.84,
+    amountCny: 70970,
     thesisMd: "东方人工智能主题C、半导设备个股。A股半导体设备仓位。",
   },
   {
     market: "us",
     symbol: "QQQ",
     name: "QQQ",
-    positionPct: 9.81,
+    amountCny: 88739,
     thesisMd: "五只纳指基金。美股科技指数底仓。",
   },
   {
     market: "us",
     symbol: "US-SEMI",
     name: "美股半导体",
-    positionPct: 8,
-    thesisMd: "NVDA、MU、SNDK。美股半导体/存储个股仓位。",
+    amountCny: 87371,
+    thesisMd: "NVDA、SMH、SOXX。美股半导体仓位。",
   },
   {
     market: "us",
-    symbol: "US-ETF",
-    name: "美股ETF",
-    positionPct: 9.08,
-    thesisMd: "SMH、SOXX、DRAM。美股半导体 ETF 仓位。",
+    symbol: "US-MEM",
+    name: "美股存储",
+    amountCny: 67170,
+    thesisMd: "MU、DRAM、SNDK。美股存储仓位。",
   },
   {
     market: "other",
     symbol: "BOND",
     name: "债券",
-    positionPct: 2,
+    amountCny: 18070,
     thesisMd: "兴业120天债券A。防守仓位。",
   },
   {
     market: "other",
     symbol: "GOLD",
     name: "黄金",
-    positionPct: 2.21,
+    amountCny: 20000,
     thesisMd: "黄金。防守仓位。",
   },
   {
     market: "other",
     symbol: "CASH",
     name: "现金",
-    positionPct: 5.53,
+    amountCny: 50000,
     thesisMd: "现金/货基。",
   },
 ] as const;
@@ -74,6 +74,7 @@ async function main() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
 
   const symbols = targetHoldings.map((item) => item.symbol);
+  const total = targetHoldings.reduce((sum, item) => sum + item.amountCny, 0);
   await db
     .update(holdings)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
@@ -89,7 +90,8 @@ async function main() {
     const values = {
       market: item.market,
       name: item.name,
-      positionPct: item.positionPct,
+      amountCny: item.amountCny,
+      positionPct: Math.round((item.amountCny / total) * 10000) / 100,
       thesisMd: item.thesisMd,
       status: "active",
       costNote: "",
@@ -105,8 +107,7 @@ async function main() {
     }
   }
 
-  const total = targetHoldings.reduce((sum, item) => sum + item.positionPct, 0);
-  console.log(`✓ holdings synced: ${targetHoldings.length} rows, total ${total.toFixed(2)}%`);
+  console.log(`✓ holdings synced: ${targetHoldings.length} rows, total ¥${total.toLocaleString("zh-CN")}`);
 }
 
 main().catch((err) => {

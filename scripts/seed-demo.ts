@@ -55,7 +55,7 @@ const holdingSeed: Array<{
   market: string;
   symbol: string;
   name: string;
-  positionPct: number;
+  amountCny: number;
   status: string;
   thesisMd: string;
   watchPriceNote?: string;
@@ -64,7 +64,7 @@ const holdingSeed: Array<{
     market: "cn",
     symbol: "CN-CPO",
     name: "A股CPO",
-    positionPct: 38.82,
+    amountCny: 351262,
     status: "active",
     thesisMd: "中航机遇领航C、永赢科技智选C、华泰柏瑞质量成长C、远东股份。CPO/光互连主线仓位。",
   },
@@ -72,7 +72,7 @@ const holdingSeed: Array<{
     market: "cn",
     symbol: "CN-MEM",
     name: "A股存储",
-    positionPct: 16.7,
+    amountCny: 151064,
     status: "active",
     thesisMd: "永赢先锋半导体智选C。A股存储周期仓位。",
   },
@@ -80,7 +80,7 @@ const holdingSeed: Array<{
     market: "cn",
     symbol: "CN-EQUIP",
     name: "A股半设",
-    positionPct: 7.84,
+    amountCny: 70970,
     status: "active",
     thesisMd: "东方人工智能主题C、半导设备个股。A股半导体设备仓位。",
   },
@@ -88,7 +88,7 @@ const holdingSeed: Array<{
     market: "us",
     symbol: "QQQ",
     name: "QQQ",
-    positionPct: 9.81,
+    amountCny: 88739,
     status: "active",
     thesisMd: "五只纳指基金。美股科技指数底仓。",
   },
@@ -96,23 +96,23 @@ const holdingSeed: Array<{
     market: "us",
     symbol: "US-SEMI",
     name: "美股半导体",
-    positionPct: 8,
+    amountCny: 87371,
     status: "active",
-    thesisMd: "NVDA、MU、SNDK。美股半导体/存储个股仓位。",
+    thesisMd: "NVDA、SMH、SOXX。美股半导体仓位。",
   },
   {
     market: "us",
-    symbol: "US-ETF",
-    name: "美股ETF",
-    positionPct: 9.08,
+    symbol: "US-MEM",
+    name: "美股存储",
+    amountCny: 67170,
     status: "active",
-    thesisMd: "SMH、SOXX、DRAM。美股半导体 ETF 仓位。",
+    thesisMd: "MU、DRAM、SNDK。美股存储仓位。",
   },
   {
     market: "other",
     symbol: "BOND",
     name: "债券",
-    positionPct: 2,
+    amountCny: 18070,
     status: "active",
     thesisMd: "兴业120天债券A。防守仓位。",
   },
@@ -120,7 +120,7 @@ const holdingSeed: Array<{
     market: "other",
     symbol: "GOLD",
     name: "黄金",
-    positionPct: 2.21,
+    amountCny: 20000,
     status: "active",
     thesisMd: "黄金。防守仓位。",
   },
@@ -128,14 +128,14 @@ const holdingSeed: Array<{
     market: "other",
     symbol: "CASH",
     name: "现金",
-    positionPct: 5.53,
+    amountCny: 50000,
     status: "active",
     thesisMd: "现金/货基。",
   },
 ];
 
 const statusContent =
-  "## 近期状态(2026-07)\n\n**主线**:个人控制台系统 Console 进入开发验收阶段(Phase 1-2),由 AI 结对开发,目标是替代记事本并建立跨 AI 的画像分发能力。\n\n**工作**:ANR 治理已完成待外部确认;选本共创系统 P0 落地,P1 排期中;Engage SDK 与 Launcher 性能优化在排期。\n\n**创作**:碳基灵感收容所推进'硅基生命的致命弱点'方向(参数固化 vs 人类经验自改写),棱角计划持续更新。\n\n**投资**:仓位结构按 A股CPO / A股存储 / A股半设 / QQQ / 美股半导体 / 美股ETF / 黄金 / 债券 / 现金 聚合维护,当前纪律是不做叙事驱动的反应式调仓。\n\n**基调**:平稳偏投入,周末在恢复 dates 节奏。";
+  "## 近期状态(2026-07)\n\n**主线**:个人控制台系统 Console 进入开发验收阶段(Phase 1-2),由 AI 结对开发,目标是替代记事本并建立跨 AI 的画像分发能力。\n\n**工作**:ANR 治理已完成待外部确认;选本共创系统 P0 落地,P1 排期中;Engage SDK 与 Launcher 性能优化在排期。\n\n**创作**:碳基灵感收容所推进'硅基生命的致命弱点'方向(参数固化 vs 人类经验自改写),棱角计划持续更新。\n\n**投资**:仓位结构按 A股CPO / A股存储 / A股半设 / QQQ / 美股半导体 / 美股存储 / 黄金 / 债券 / 现金 聚合维护,当前纪律是不做叙事驱动的反应式调仓。\n\n**基调**:平稳偏投入,周末在恢复 dates 节奏。";
 
 const layerSeed: Array<{ layer: ProfileLayer; contentMd: string }> = [
   { layer: "status", contentMd: statusContent },
@@ -183,6 +183,7 @@ async function upsertWork() {
 }
 
 async function upsertHoldings() {
+  const total = holdingSeed.reduce((sum, item) => sum + item.amountCny, 0);
   for (const item of holdingSeed) {
     const rows = await db
       .select({ id: holdings.id })
@@ -191,7 +192,8 @@ async function upsertHoldings() {
       .limit(1);
     const values = {
       name: item.name,
-      positionPct: item.positionPct,
+      amountCny: item.amountCny,
+      positionPct: Math.round((item.amountCny / total) * 10000) / 100,
       status: item.status,
       thesisMd: item.thesisMd,
       watchPriceNote: item.watchPriceNote ?? "",

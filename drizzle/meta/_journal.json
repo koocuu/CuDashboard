@@ -64,6 +64,13 @@
       "when": 1783818000000,
       "tag": "0008_holding_proposals",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783904400000,
+      "tag": "0009_holding_amount_monthly_review",
+      "breakpoints": true
     }
   ]
 }

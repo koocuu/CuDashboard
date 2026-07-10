@@ -5,10 +5,10 @@ import { holdings } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 
-function parsePct(value: unknown) {
+function parseAmount(value: unknown) {
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
-  return Math.min(100, Math.max(0, Math.round(n * 100) / 100));
+  return Math.max(0, Math.round(n * 100) / 100);
 }
 
 function pid(s: string) {
@@ -31,8 +31,8 @@ export async function PATCH(
   if (typeof b.symbol === "string") patch.symbol = b.symbol.trim();
   if (b.market === "cn" || b.market === "us" || b.market === "other")
     patch.market = b.market;
-  const positionPct = parsePct(b.positionPct);
-  if (positionPct !== null) patch.positionPct = positionPct;
+  const amountCny = parseAmount(b.amountCny);
+  if (amountCny !== null) patch.amountCny = amountCny;
   if (typeof b.costNote === "string") patch.costNote = b.costNote;
   if (typeof b.thesisMd === "string") patch.thesisMd = b.thesisMd;
   if (typeof b.watchPriceNote === "string") patch.watchPriceNote = b.watchPriceNote;

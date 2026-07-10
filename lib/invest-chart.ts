@@ -16,6 +16,22 @@ function pct(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+function percentageMap(active: Holding[], totalAmountCny: number) {
+  const rows = active.map((holding) => {
+    const rawUnits = totalAmountCny > 0 ? (holding.amountCny / totalAmountCny) * 10000 : 0;
+    const units = Math.floor(rawUnits);
+    return { id: holding.id, units, remainder: rawUnits - units };
+  });
+  let unitsLeft = totalAmountCny > 0
+    ? 10000 - rows.reduce((sum, row) => sum + row.units, 0)
+    : 0;
+  const ranked = [...rows].sort((a, b) => b.remainder - a.remainder);
+  for (let index = 0; index < ranked.length && unitsLeft > 0; index++, unitsLeft--) {
+    ranked[index].units += 1;
+  }
+  return new Map(rows.map((row) => [row.id, row.units / 100]));
+}
+
 export function colorForHolding(holding: Pick<Holding, "market">, index: number) {
   if (holding.market === "cn") return CN_COLORS[index % CN_COLORS.length];
   if (holding.market === "us") return US_COLORS[index % US_COLORS.length];
@@ -24,20 +40,23 @@ export function colorForHolding(holding: Pick<Holding, "market">, index: number)
 
 export function buildPositionSlices(holdings: Holding[], limit = 4) {
   const active = holdings
-    .filter((h) => h.status === "active" && h.positionPct > 0)
-    .sort((a, b) => b.positionPct - a.positionPct);
+    .filter((h) => h.status === "active" && h.amountCny > 0)
+    .sort((a, b) => b.amountCny - a.amountCny);
+  const totalAmountCny = active.reduce((sum, holding) => sum + holding.amountCny, 0);
+  const percentages = percentageMap(active, totalAmountCny);
+  const holdingPct = (holding: Holding) => percentages.get(holding.id) ?? 0;
 
   const top = active.slice(0, limit);
   const slices: PositionSlice[] = top.map((holding, index) => ({
     key: String(holding.id),
     label: holding.name,
-    value: pct(holding.positionPct),
+    value: holdingPct(holding),
     color: colorForHolding(holding, index),
     market: holding.market,
   }));
 
   const rest = active.slice(limit);
-  const restValue = pct(rest.reduce((sum, h) => sum + h.positionPct, 0));
+  const restValue = pct(rest.reduce((sum, holding) => sum + holdingPct(holding), 0));
   if (restValue > 0) {
     slices.push({
       key: "other-holdings",
@@ -48,19 +67,13 @@ export function buildPositionSlices(holdings: Holding[], limit = 4) {
     });
   }
 
-  const total = pct(active.reduce((sum, h) => sum + h.positionPct, 0));
-  const cash = total >= 99.9 ? 0 : pct(Math.max(0, 100 - total));
-  if (cash > 0) {
-    slices.push({
-      key: "cash",
-      label: "现金/未配置",
-      value: cash,
-      color: OTHER_COLORS[1],
-      market: "cash",
-    });
-  }
+  const total = totalAmountCny > 0 ? 100 : 0;
+  const cashHolding = active.find(
+    (holding) => holding.symbol.toUpperCase() === "CASH" || holding.name.includes("现金"),
+  );
+  const cash = cashHolding ? holdingPct(cashHolding) : 0;
 
-  return { slices, total, cash };
+  return { slices, total, cash, totalAmountCny };
 }
 
 export function donutGradient(slices: PositionSlice[]) {
@@ -80,12 +93,14 @@ export function donutGradient(slices: PositionSlice[]) {
 
 export function snapshotHoldings(holdings: Holding[]) {
   const active = holdings.filter((h) => h.status === "active");
-  const { slices, total, cash } = buildPositionSlices(holdings, 99);
+  const { slices, total, cash, totalAmountCny } = buildPositionSlices(holdings, 99);
+  const percentages = percentageMap(active, totalAmountCny);
 
   return {
     capturedAt: new Date().toISOString(),
     total,
     cash,
+    totalAmountCny,
     slices: slices.map(({ key, label, value, color, market }) => ({
       key,
       label,
@@ -97,7 +112,8 @@ export function snapshotHoldings(holdings: Holding[]) {
       market: h.market,
       symbol: h.symbol,
       name: h.name,
-      positionPct: h.positionPct,
+      amountCny: h.amountCny,
+      positionPct: percentages.get(h.id) ?? 0,
     })),
   };
 }

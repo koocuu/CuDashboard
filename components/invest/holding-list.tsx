@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import type { Holding } from "@/lib/db/schema";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,9 @@ export function HoldingList({
   onDelete: (id: number) => void;
 }) {
   const markets = ["cn", "us", "other"] as const;
+  const totalAmountCny = holdings
+    .filter((holding) => holding.status === "active")
+    .reduce((sum, holding) => sum + holding.amountCny, 0);
 
   async function patch(id: number, body: Partial<Holding>) {
     const res = await fetch(`/api/holdings/${id}`, {
@@ -69,6 +73,7 @@ export function HoldingList({
                 key={h.id}
                 holding={h}
                 watch={watch}
+                totalAmountCny={totalAmountCny}
                 onPatch={patch}
                 onDelete={del}
               />
@@ -83,15 +88,19 @@ export function HoldingList({
 function HoldingRow({
   holding: h,
   watch,
+  totalAmountCny,
   onPatch,
   onDelete,
 }: {
   holding: Holding;
   watch: boolean;
+  totalAmountCny: number;
   onPatch: (id: number, body: Partial<Holding>) => void;
   onDelete: (holding: Holding) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [name, setName] = useState(h.name);
+  const [symbol, setSymbol] = useState(h.symbol);
   const [thesis, setThesis] = useState(h.thesisMd);
   const [watchNote, setWatchNote] = useState(h.watchPriceNote);
 
@@ -120,21 +129,26 @@ function HoldingRow({
           </div>
         </div>
         {!watch && (
-          <div className="flex items-center gap-1 text-sm">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-mono text-xs text-muted-foreground">¥</span>
             <input
               type="number"
               step="0.01"
-              defaultValue={h.positionPct}
-              className="w-16 rounded-lg border bg-transparent px-1 py-0.5 text-right font-mono text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              defaultValue={h.amountCny}
+              className="w-24 rounded-lg border bg-transparent px-1.5 py-0.5 text-right font-mono text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               onBlur={(e) => {
                 const raw = Number(e.target.value);
                 const v = Number.isFinite(raw)
                   ? Math.round(raw * 100) / 100
-                  : h.positionPct;
-                if (v !== h.positionPct) onPatch(h.id, { positionPct: v });
+                  : h.amountCny;
+                if (v !== h.amountCny) onPatch(h.id, { amountCny: v });
               }}
             />
-            <span className="font-mono text-muted-foreground">%</span>
+            <span className="font-mono text-xs text-muted-foreground">
+              {totalAmountCny > 0
+                ? ((h.amountCny / totalAmountCny) * 100).toFixed(2)
+                : "0.00"}%
+            </span>
           </div>
         )}
         <button
@@ -151,6 +165,33 @@ function HoldingRow({
 
       {open && (
         <div className="space-y-2 border-t px-3 py-2.5">
+          <div className="grid gap-2 sm:grid-cols-[1fr_140px]">
+            <div>
+              <label className="text-xs text-muted-foreground">名称</label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={() =>
+                  name.trim() &&
+                  name.trim() !== h.name &&
+                  onPatch(h.id, { name: name.trim() })
+                }
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">代号</label>
+              <Input
+                value={symbol}
+                onChange={(e) => setSymbol(e.target.value)}
+                onBlur={() =>
+                  symbol.trim() !== h.symbol &&
+                  onPatch(h.id, { symbol: symbol.trim() })
+                }
+                className="mt-1 font-mono"
+              />
+            </div>
+          </div>
           {watch && (
             <div>
               <label className="text-xs text-muted-foreground">

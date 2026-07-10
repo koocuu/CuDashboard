@@ -4,12 +4,12 @@ import type { Holding } from "@/lib/db/schema";
 import { buildPositionSlices, donutGradient } from "@/lib/invest-chart";
 
 export function PositionBars({ holdings }: { holdings: Holding[] }) {
-  const { slices, total, cash } = buildPositionSlices(holdings, 99);
+  const { slices, total, cash, totalAmountCny } = buildPositionSlices(holdings, 99);
 
   if (total === 0) {
     return (
       <div className="rounded-xl border bg-card p-4 text-center text-sm text-muted-foreground">
-        暂无仓位数据，给持仓填写占比后会显示结构图。
+        暂无仓位数据，给持仓填写人民币金额后会显示结构图。
       </div>
     );
   }
@@ -19,7 +19,7 @@ export function PositionBars({ holdings }: { holdings: Holding[] }) {
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium">仓位结构</span>
         <span className="text-muted-foreground">
-          已配置 <span className="font-mono">{total}%</span>
+          总资产 <span className="font-mono">¥{Math.round(totalAmountCny).toLocaleString("zh-CN")}</span>
           {cash > 0 && (
             <>
               {" "}· 现金 <span className="font-mono">{cash}%</span>

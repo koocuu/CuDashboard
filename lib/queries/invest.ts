@@ -8,7 +8,7 @@ export async function listHoldings() {
     .select()
     .from(holdings)
     .where(isNull(holdings.deletedAt))
-    .orderBy(asc(holdings.market), desc(holdings.positionPct));
+    .orderBy(asc(holdings.market), desc(holdings.amountCny));
 }
 
 export async function getHolding(id: number) {
@@ -29,6 +29,6 @@ export async function investStats() {
   return {
     holdingCount: active.length,
     watchingCount: watching.length,
-    activePositionPct: active.reduce((sum, h) => sum + h.positionPct, 0),
+    totalAmountCny: active.reduce((sum, h) => sum + h.amountCny, 0),
   };
 }

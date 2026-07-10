@@ -19,7 +19,7 @@ export function AddHoldingDialog({
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
   const [market, setMarket] = useState<"cn" | "us" | "other">("cn");
-  const [positionPct, setPositionPct] = useState("");
+  const [amountCny, setAmountCny] = useState("");
   const [thesis, setThesis] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -34,7 +34,7 @@ export function AddHoldingDialog({
           name: name.trim(),
           symbol: symbol.trim(),
           market,
-          positionPct: Number(positionPct) || 0,
+          amountCny: Number(amountCny) || 0,
           thesisMd: thesis,
           status: defaultStatus,
         }),
@@ -87,12 +87,12 @@ export function AddHoldingDialog({
               <Input
                 type="number"
                 step="0.01"
-                value={positionPct}
-                onChange={(e) => setPositionPct(e.target.value)}
-                placeholder="仓位"
-                className="w-20"
+                value={amountCny}
+                onChange={(e) => setAmountCny(e.target.value)}
+                placeholder="折人民币金额"
+                className="w-32"
               />
-              <span className="text-sm text-muted-foreground">%</span>
+              <span className="text-sm text-muted-foreground">元</span>
             </div>
           )}
         </div>

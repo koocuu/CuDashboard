@@ -7,12 +7,13 @@ import { searchAll } from "@/lib/queries/search";
 import { createProposal } from "@/lib/proposals";
 import { isValidLayer } from "@/lib/queries/profile";
 import {
-  createHoldingSnapshotProposal,
+  createMonthlyInvestmentProposal,
   holdingSnapshotDiff,
   holdingSnapshotItemSchema,
   normalizeHoldingSnapshot,
 } from "@/lib/holding-proposals";
 import { listHoldings } from "@/lib/queries/invest";
+import { monthlyReviewDataSchema } from "@/lib/invest-review-template";
 import type { ProfileLayer } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
@@ -73,23 +74,26 @@ const mcpHandler = createMcpHandler(
     );
 
     server.registerTool(
-      "propose_holdings_snapshot",
+      "propose_monthly_investment_update",
       {
-        title: "Propose Holdings Snapshot",
+        title: "Propose Monthly Investment Update",
         description:
-          "提交一次完整持仓快照的待确认提案，用于月度更新真实仓位。此工具绝不会直接写入 holdings；用户必须在 dashboard 的投资页查看变更并批准后才会同步。holdings 必须包含当前全部活跃仓位（含现金）；批准时未列出的活跃仓位将被移出持仓。需要 write 权限。",
+          "提交一份固定格式的月度投资更新提案：全量人民币金额持仓 + 四段月度审计。工具只创建待确认提案；用户在 dashboard 投资页批准后，系统才同步持仓、按金额计算占比并固化同一节点的月度快照。holdings 必须包含全部资产并显式包含 symbol=CASH 的现金/余额；未列出的旧活跃仓位会被移出。需要 write 权限。",
         inputSchema: {
+          month: z
+            .string()
+            .regex(/^\d{4}-\d{2}$/)
+            .describe("审计月份，严格为 YYYY-MM"),
           holdings: z
             .array(holdingSnapshotItemSchema)
             .min(1)
-            .describe("当前全部活跃持仓。每行必须有稳定 symbol、market、name 和 position_pct；合计应接近 100%。"),
-          summary: z
-            .string()
-            .min(1)
-            .describe("本次更新的简短说明，例如“2026-08 月度审计后的实际持仓”。"),
+            .describe("当前全部资产的完整快照。填写 amount_cny，不填写比例；必须包含现金/余额。"),
+          review: monthlyReviewDataSchema.describe(
+            "固定四段审计：conclusion、triggers_and_rules、actions、next_month_checks。actions 必须区分建议与已执行。",
+          ),
         },
       },
-      async ({ holdings, summary }, extra) => {
+      async ({ month, holdings, review }, extra) => {
         const scopes = extra.authInfo?.scopes ?? [];
         if (!scopes.includes("write")) {
           return textResult("错误：此 token 无写权限，无法提交持仓更新提案。", true);
@@ -99,17 +103,17 @@ const mcpHandler = createMcpHandler(
           const snapshot = normalizeHoldingSnapshot(holdings);
           const current = await listHoldings();
           const diff = holdingSnapshotDiff(current, snapshot);
-          const proposal = await createHoldingSnapshotProposal({
+          const proposal = await createMonthlyInvestmentProposal({
+            month,
             snapshot,
-            summary,
-            source: "mcp",
+            reviewData: review,
             sourceName:
               typeof extra.authInfo?.extra?.tokenName === "string"
                 ? extra.authInfo.extra.tokenName
                 : "mcp",
           });
           return textResult(
-            `已创建待确认持仓提案 #${proposal.id}：${diff.join("；")}。请用户在 dashboard 的投资页确认，批准前真实持仓不会改变。`,
+            `已创建 ${month} 月度投资提案 #${proposal.id}：${diff.join("；")}。请用户在 dashboard 投资页确认；批准后持仓和月度审计会在同一节点生效。`,
           );
         } catch (error) {
           return textResult(

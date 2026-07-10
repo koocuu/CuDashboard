@@ -1,6 +1,7 @@
 import type { Holding, HoldingProposal } from "@/lib/db/schema";
 import {
   holdingSnapshotDiff,
+  proposalReviewData,
   proposalSnapshot,
 } from "@/lib/holding-proposals";
 import { formatDate } from "@/lib/utils";
@@ -33,6 +34,9 @@ export function HoldingProposalPanel({
         {proposals.map((proposal) => {
           const snapshot = proposalSnapshot(proposal.snapshot);
           const diff = holdingSnapshotDiff(currentHoldings, snapshot);
+          const review = proposal.reviewData
+            ? proposalReviewData(proposal.reviewData)
+            : null;
           const pending = proposal.status === "pending";
           return (
             <div key={proposal.id} className="rounded-xl border bg-card p-3">
@@ -42,6 +46,11 @@ export function HoldingProposalPanel({
                   <p className="mt-1 text-xs text-muted-foreground">
                     {proposal.sourceName || proposal.source} · {formatDate(proposal.createdAt)}
                   </p>
+                  {review && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {review.conclusion}
+                    </p>
+                  )}
                 </div>
                 <span className="font-mono text-xs text-muted-foreground">
                   {statusText[proposal.status] || proposal.status}

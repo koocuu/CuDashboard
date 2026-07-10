@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { holdingProposals } from "@/lib/db/schema";
-import { applyHoldingSnapshot, getHoldingProposal } from "@/lib/holding-proposals";
+import {
+  applyHoldingSnapshot,
+  getHoldingProposal,
+  proposalReviewData,
+} from "@/lib/holding-proposals";
+import { renderMonthlyReview } from "@/lib/invest-review-template";
+import { upsertInvestReview } from "@/lib/queries/invest-reviews";
 
 export const runtime = "nodejs";
 
@@ -37,6 +43,14 @@ export async function POST(
   if (body.action === "approve") {
     try {
       await applyHoldingSnapshot(proposal.snapshot);
+      if (proposal.month && proposal.reviewData) {
+        const reviewData = proposalReviewData(proposal.reviewData);
+        await upsertInvestReview({
+          month: proposal.month,
+          contentMd: renderMonthlyReview(proposal.month, reviewData),
+          refreshSnapshot: true,
+        });
+      }
     } catch (error) {
       return NextResponse.json(
         { error: error instanceof Error ? error.message : "持仓快照无效" },

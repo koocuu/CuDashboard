@@ -1,17 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function HoldingProposalActions({ id }: { id: number }) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   async function act(action: "approve" | "reject") {
     if (busy) return;
-    if (action === "approve" && !confirm("批准后将用该完整快照同步活跃持仓，确认继续？")) {
+    if (action === "approve" && !confirm("批准后将同步完整金额持仓，并固化该月审计和快照。确认继续？")) {
       return;
     }
     setBusy(true);
@@ -27,7 +25,7 @@ export function HoldingProposalActions({ id }: { id: number }) {
         setBusy(false);
         return;
       }
-      router.refresh();
+      window.location.reload();
     } catch {
       setBusy(false);
     }
