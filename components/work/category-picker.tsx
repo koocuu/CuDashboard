@@ -88,10 +88,10 @@ export function CategoryPicker({
           type="button"
           onClick={() => (open ? close() : setOpen(true))}
           className={cn(
-            "font-mono text-[11px]",
+            "inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] transition-colors",
             value
-              ? "text-foreground/70 hover:text-foreground"
-              : "text-muted-foreground/50 hover:text-muted-foreground",
+              ? "bg-muted text-foreground/80 hover:bg-muted/80 hover:text-foreground"
+              : "text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground",
           )}
           title="编辑分类"
         >

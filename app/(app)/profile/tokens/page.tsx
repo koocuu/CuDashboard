@@ -28,6 +28,7 @@ export default async function TokensPage() {
         scope: oauthAuthorizations.scope,
         lastUsedAt: oauthAuthorizations.lastUsedAt,
         accessExpiresAt: oauthAuthorizations.accessExpiresAt,
+        refreshExpiresAt: oauthAuthorizations.refreshExpiresAt,
         createdAt: oauthAuthorizations.createdAt,
         revokedAt: oauthAuthorizations.revokedAt,
       })
@@ -62,6 +63,7 @@ export default async function TokensPage() {
           ...row,
           lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
           accessExpiresAt: row.accessExpiresAt.toISOString(),
+          refreshExpiresAt: row.refreshExpiresAt.toISOString(),
           createdAt: row.createdAt.toISOString(),
           revokedAt: row.revokedAt?.toISOString() ?? null,
         }))}

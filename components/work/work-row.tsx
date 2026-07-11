@@ -111,7 +111,7 @@ export function WorkRow({
           </div>
         )}
 
-        <div className="mt-1 flex flex-wrap items-center gap-2">
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <CategoryPicker
             variant="inline"
             value={item.category}
@@ -119,7 +119,12 @@ export function WorkRow({
             onChange={(category) => onPatch(item.id, { category })}
           />
 
-          <span className={cn("font-mono text-[11px]", meta.badge)}>
+          <span
+            className={cn(
+              "inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px]",
+              meta.chip,
+            )}
+          >
             {meta.label}
           </span>
 
@@ -143,7 +148,7 @@ export function WorkRow({
             <button
               type="button"
               onClick={() => setEditingNote(true)}
-              className="min-w-0 flex-1 truncate text-left text-xs text-muted-foreground"
+              className="min-w-0 flex-1 truncate text-left text-xs text-muted-foreground/80"
             >
               {item.note || <span className="opacity-50">+ 备注</span>}
             </button>

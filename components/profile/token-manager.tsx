@@ -22,8 +22,13 @@ interface OAuthAuthorizationRow {
   scope: string;
   lastUsedAt: string | null;
   accessExpiresAt: string;
+  refreshExpiresAt: string;
   createdAt: string;
   revokedAt: string | null;
+}
+
+function isExpired(iso: string) {
+  return new Date(iso).getTime() <= Date.now();
 }
 
 interface GeneratedSecret {
@@ -229,8 +234,8 @@ export function TokenManager({
             );
           })}
           {tokens.length === 0 && (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              还没有 token。
+            <p className="rounded-lg border border-dashed px-3 py-5 text-center text-sm text-muted-foreground">
+              还没有 API token / 分享页
             </p>
           )}
         </div>
@@ -239,24 +244,48 @@ export function TokenManager({
       <section className="space-y-2">
         <h2 className="text-sm text-muted-foreground">OAuth 授权</h2>
         {oauthAuthorizations.map((item) => {
+          const accessExpired = isExpired(item.accessExpiresAt);
+          const refreshExpired = isExpired(item.refreshExpiresAt);
+          const expired = refreshExpired || accessExpired;
           return (
             <div
               key={item.id}
-              className="flex items-center justify-between rounded-lg border bg-card p-3"
+              className={cn(
+                "flex items-center justify-between rounded-lg border bg-card p-3",
+                expired && "opacity-70",
+              )}
             >
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{item.clientName}</span>
                   <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                     OAuth · {item.scope}
                   </span>
+                  {refreshExpired ? (
+                    <span className="rounded bg-[#F3E7E4] px-1.5 py-0.5 text-xs text-primary">
+                      已过期
+                    </span>
+                  ) : accessExpired ? (
+                    <span className="rounded bg-[#F5EFE6] px-1.5 py-0.5 text-xs text-[#9A7B4F]">
+                      access 已过期
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   最后使用{" "}
                   {item.lastUsedAt ? formatDate(item.lastUsedAt) : "从未"}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  access token 到期 {formatDate(item.accessExpiresAt)}
+                <p
+                  className={cn(
+                    "mt-0.5 text-xs",
+                    expired ? "text-primary/80" : "text-muted-foreground",
+                  )}
+                >
+                  {refreshExpired
+                    ? `授权已过期 ${formatDate(item.refreshExpiresAt)}`
+                    : accessExpired
+                      ? `access 已过期 ${formatDate(item.accessExpiresAt)} · 下次使用可自动续期`
+                      : `access token 到期 ${formatDate(item.accessExpiresAt)}`}
                 </p>
               </div>
               <button
@@ -270,8 +299,8 @@ export function TokenManager({
           );
         })}
         {oauthAuthorizations.length === 0 && (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            还没有 OAuth 授权。
+          <p className="rounded-lg border border-dashed px-3 py-5 text-center text-sm text-muted-foreground">
+            还没有 OAuth 授权
           </p>
         )}
       </section>
