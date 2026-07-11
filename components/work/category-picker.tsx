@@ -69,7 +69,10 @@ export function CategoryPicker({
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div
+      ref={rootRef}
+      className={cn("relative", variant === "inline" && "inline-flex h-5 items-center")}
+    >
       {variant === "input" ? (
         <button
           type="button"
@@ -88,7 +91,7 @@ export function CategoryPicker({
           type="button"
           onClick={() => (open ? close() : setOpen(true))}
           className={cn(
-            "inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] transition-colors",
+            "inline-flex h-5 items-center rounded-md px-1.5 text-[11px] leading-none transition-colors",
             value
               ? "bg-muted text-foreground/80 hover:bg-muted/80 hover:text-foreground"
               : "text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground",

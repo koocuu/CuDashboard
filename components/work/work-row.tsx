@@ -121,7 +121,7 @@ export function WorkRow({
 
           <span
             className={cn(
-              "inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px]",
+              "inline-flex h-5 items-center rounded-md px-1.5 text-[11px] leading-none",
               meta.chip,
             )}
           >
@@ -133,7 +133,7 @@ export function WorkRow({
               autoFocus
               defaultValue={item.note}
               placeholder="一句话备注"
-              className="min-w-40 flex-1 bg-transparent text-xs text-muted-foreground outline-none"
+              className="h-5 min-w-40 flex-1 bg-transparent text-[11px] leading-none text-muted-foreground outline-none"
               onBlur={(e) => {
                 setEditingNote(false);
                 const v = e.target.value;
@@ -148,7 +148,7 @@ export function WorkRow({
             <button
               type="button"
               onClick={() => setEditingNote(true)}
-              className="min-w-0 flex-1 truncate text-left text-xs text-muted-foreground/80"
+              className="inline-flex h-5 min-w-0 flex-1 items-center truncate text-left text-[11px] leading-none text-muted-foreground/80"
             >
               {item.note || <span className="opacity-50">+ 备注</span>}
             </button>
