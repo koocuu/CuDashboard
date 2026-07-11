@@ -1,5 +1,12 @@
 const API = "https://api.github.com";
 
+export function isGithubBackupConfigured() {
+  return Boolean(
+    process.env.GITHUB_BACKUP_TOKEN?.trim() &&
+      process.env.GITHUB_BACKUP_REPO?.trim(),
+  );
+}
+
 interface FileEntry {
   path: string;
   content: string;
@@ -16,7 +23,7 @@ export async function commitFiles(
   const token = process.env.GITHUB_BACKUP_TOKEN;
   const repo = process.env.GITHUB_BACKUP_REPO;
   const branch = process.env.GITHUB_BACKUP_BRANCH || "main";
-  if (!token || !repo) {
+  if (!isGithubBackupConfigured() || !token || !repo) {
     throw new Error("未配置 GITHUB_BACKUP_TOKEN / GITHUB_BACKUP_REPO");
   }
 

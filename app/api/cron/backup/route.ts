@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { backupRuns } from "@/lib/db/schema";
-import { commitFiles } from "@/lib/backup/github";
+import {
+  commitFiles,
+  isGithubBackupConfigured,
+} from "@/lib/backup/github";
 import { exportMarkdownFiles } from "@/lib/export";
 import { formatDate } from "@/lib/utils";
 
@@ -24,6 +27,14 @@ export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
   if (auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "未授权" }, { status: 401 });
+  }
+
+  // 未启用不是运行故障，不写 failed 记录，也不在首页制造红色告警。
+  if (!isGithubBackupConfigured()) {
+    return NextResponse.json(
+      { ok: false, disabled: true, error: "GitHub 备份未启用" },
+      { status: 503 },
+    );
   }
 
   try {

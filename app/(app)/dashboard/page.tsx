@@ -97,7 +97,13 @@ export default async function DashboardPage() {
           </Link>
         )}
 
-        <BackupStatus backup={backup} />
+        <BackupStatus
+          backup={backup}
+          enabled={Boolean(
+            process.env.GITHUB_BACKUP_TOKEN?.trim() &&
+              process.env.GITHUB_BACKUP_REPO?.trim(),
+          )}
+        />
 
         <section className="border-t pt-4">
           <Link href="/invest" className="block">
@@ -211,7 +217,21 @@ export default async function DashboardPage() {
 // 备份状态常驻显示:不只报失败,长时间没跑(cron 停了)也要能看出来
 const BACKUP_STALE_MS = 48 * 60 * 60 * 1000;
 
-function BackupStatus({ backup }: { backup: BackupRun | null }) {
+function BackupStatus({
+  backup,
+  enabled,
+}: {
+  backup: BackupRun | null;
+  enabled: boolean;
+}) {
+  if (!enabled) {
+    return (
+      <p className="border-t pt-3 font-mono text-[11px] text-muted-foreground">
+        备份 · 未启用
+      </p>
+    );
+  }
+
   if (!backup) {
     return (
       <p className="border-t pt-3 font-mono text-[11px] text-muted-foreground">

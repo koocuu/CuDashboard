@@ -38,7 +38,7 @@ npm run dev
 | `AUTH_PASSWORD_HASH` | 登录密码的 bcrypt 哈希,用 `npm run hash` 生成 |
 | `JWT_SECRET` | JWT 签名密钥,`openssl rand -base64 48` |
 | `USER_NAME` | 画像头部展示名 |
-| `GITHUB_BACKUP_TOKEN` | 备份目标私有仓库的 PAT(repo 写权限) |
+| `GITHUB_BACKUP_TOKEN` | 仅授权备份私库的 fine-grained PAT(`Contents: Read and write`) |
 | `GITHUB_BACKUP_REPO` | 备份仓库 `owner/repo` |
 | `GITHUB_BACKUP_BRANCH` | 备份分支(默认 `main`) |
 | `CRON_SECRET` | 保护 `/api/cron/backup` 的 Bearer 密钥 |
@@ -54,7 +54,7 @@ npm run dev
 - Token:read/write token 生成、吊销、最后使用时间
 - MCP:`get_profile` / `search_entries` / `propose_profile_update` / `propose_monthly_investment_update`
 - 导入导出:`/api/import` JSON 导入,`/api/export` 全量 Markdown ZIP
-- 备份:Vercel Cron 每日全量 Markdown 快照到 GitHub 私库
+- 备份:Vercel Cron 每日全量 Markdown 快照到 GitHub 私库;未配置视为未启用,启用后失败或 48 小时未成功才告警
 - Demo seed:`npm run seed:demo` 导入 `console-seed-data.md` 对应的工作事项、持仓、画像层和一条 pending proposal
 
 ## 目录结构
