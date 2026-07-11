@@ -1,17 +1,17 @@
 # Console 种子数据(Demo)
 
 > 给 Codex:将以下数据写入数据库(直接 seed 脚本或走 /api/import 均可)。
-> 仓位占比为占位示例,用户会自行修正,结构保持即可。
+> 持仓金额为 2026-07 聚合快照,九项合计 ¥904,646;占比由系统自动计算。
 
 ## 1. work_items(来自用户现有记事本,已映射状态)
 
 ```json
 [
   { "name": "Engage SDK", "status": "scheduled", "note": "排期", "pinned": false },
-  { "name": "ANR 治理", "status": "waiting", "note": "治理完成,等龙哥看低端机 C1", "pinned": false },
+  { "name": "ANR 治理", "status": "scheduled", "note": "治理完成,等龙哥看低端机 C1", "pinned": false },
   { "name": "选本共创系统", "status": "in_progress", "note": "P0 完成,等待做 P1", "pinned": true },
   { "name": "Launcher 性能优化", "status": "scheduled", "note": "排期 app.onCreate", "pinned": false },
-  { "name": "决策助手", "status": "archived", "note": "", "pinned": false },
+  { "name": "决策助手", "status": "done", "note": "", "pinned": false },
   { "name": "棱角计划 / 碳基灵感收容所", "status": "in_progress", "note": "持续更新", "pinned": false },
   { "name": "个人主页", "status": "someday", "note": "有想法就更新", "pinned": false },
   { "name": "Console 个人控制台", "status": "in_progress", "note": "Phase 1-2 开发中", "pinned": true }

@@ -4,6 +4,7 @@ import { MarkdownLite } from "@/components/ui/markdown-lite";
 
 type Snapshot = {
   total?: number;
+  investedPct?: number;
   cash?: number;
   totalAmountCny?: number;
   slices?: PositionSlice[];
@@ -40,7 +41,9 @@ function ReviewItem({ review }: { review: Entry }) {
         <span className="font-mono text-sm">{review.title}</span>
         <span className="text-xs text-muted-foreground">
           ¥<span className="font-mono">{Math.round(snapshot.totalAmountCny ?? 0).toLocaleString("zh-CN")}</span>
-          {snapshot.total ? ` · ${snapshot.total}%` : ""}
+          {(snapshot.investedPct ?? snapshot.total) !== undefined
+            ? ` · 已投 ${snapshot.investedPct ?? snapshot.total}%`
+            : ""}
         </span>
       </summary>
       <div className="mt-3 grid gap-4 border-t pt-3 md:grid-cols-[1fr_auto]">
@@ -53,8 +56,11 @@ function ReviewItem({ review }: { review: Entry }) {
               className="grid h-24 w-24 shrink-0 place-items-center rounded-full"
               style={{ background: donutGradient(slices) }}
             >
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-card">
-                <span className="font-mono text-xs">100%</span>
+              <div className="grid h-14 w-14 place-items-center content-center rounded-full bg-card">
+                <span className="text-[9px] text-muted-foreground">已投</span>
+                <span className="font-mono text-xs">
+                  {snapshot.investedPct ?? snapshot.total ?? 0}%
+                </span>
               </div>
             </div>
             <div className="min-w-32 space-y-1 text-xs">

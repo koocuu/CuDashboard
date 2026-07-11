@@ -260,7 +260,8 @@ function PositionDonut({
       style={{ background: donutGradient(slices) }}
       aria-label="仓位结构环形图"
     >
-      <div className="grid h-[68px] w-[68px] place-items-center rounded-full bg-card">
+      <div className="grid h-[68px] w-[68px] place-items-center content-center rounded-full bg-card">
+        <span className="text-[10px] text-muted-foreground">已投</span>
         <span className="font-mono text-sm text-foreground">{total}%</span>
       </div>
     </div>

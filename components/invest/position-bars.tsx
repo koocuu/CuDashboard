@@ -6,7 +6,7 @@ import { buildPositionSlices, donutGradient } from "@/lib/invest-chart";
 export function PositionBars({ holdings }: { holdings: Holding[] }) {
   const { slices, total, cash, totalAmountCny } = buildPositionSlices(holdings, 99);
 
-  if (total === 0) {
+  if (totalAmountCny === 0) {
     return (
       <div className="rounded-xl border bg-card p-4 text-center text-sm text-muted-foreground">
         暂无仓位数据，给持仓填写人民币金额后会显示结构图。
@@ -34,7 +34,8 @@ export function PositionBars({ holdings }: { holdings: Holding[] }) {
           style={{ background: donutGradient(slices) }}
           aria-label="仓位结构环形图"
         >
-          <div className="grid h-[68px] w-[68px] place-items-center rounded-full bg-card">
+          <div className="grid h-[68px] w-[68px] place-items-center content-center rounded-full bg-card">
+            <span className="text-[10px] text-muted-foreground">已投</span>
             <span className="font-mono text-sm">{total}%</span>
           </div>
         </div>

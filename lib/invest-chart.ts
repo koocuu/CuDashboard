@@ -67,13 +67,13 @@ export function buildPositionSlices(holdings: Holding[], limit = 4) {
     });
   }
 
-  const total = totalAmountCny > 0 ? 100 : 0;
   const cashHolding = active.find(
     (holding) => holding.symbol.toUpperCase() === "CASH" || holding.name.includes("现金"),
   );
   const cash = cashHolding ? holdingPct(cashHolding) : 0;
+  const investedPct = totalAmountCny > 0 ? pct(100 - cash) : 0;
 
-  return { slices, total, cash, totalAmountCny };
+  return { slices, total: investedPct, investedPct, cash, totalAmountCny };
 }
 
 export function donutGradient(slices: PositionSlice[]) {
@@ -93,12 +93,13 @@ export function donutGradient(slices: PositionSlice[]) {
 
 export function snapshotHoldings(holdings: Holding[]) {
   const active = holdings.filter((h) => h.status === "active");
-  const { slices, total, cash, totalAmountCny } = buildPositionSlices(holdings, 99);
+  const { slices, total, investedPct, cash, totalAmountCny } = buildPositionSlices(holdings, 99);
   const percentages = percentageMap(active, totalAmountCny);
 
   return {
     capturedAt: new Date().toISOString(),
     total,
+    investedPct,
     cash,
     totalAmountCny,
     slices: slices.map(({ key, label, value, color, market }) => ({
