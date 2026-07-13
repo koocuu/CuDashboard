@@ -41,10 +41,7 @@ npm run dev
 | `GITHUB_BACKUP_TOKEN` | 仅授权备份私库的 fine-grained PAT(`Contents: Read and write`) |
 | `GITHUB_BACKUP_REPO` | 备份仓库 `owner/repo` |
 | `GITHUB_BACKUP_BRANCH` | 备份分支(默认 `main`) |
-| `CRON_SECRET` | 保护 `/api/cron/*` 的 Bearer 密钥 |
-| `RESEND_API_KEY` | Resend API Key，用于每月审计提醒邮件 |
-| `AUDIT_REMINDER_EMAIL` | 月度审计提醒收件地址 |
-| `AUDIT_REMINDER_FROM` | 可选发件人（默认 `Console <onboarding@resend.dev>`） |
+| `CRON_SECRET` | 保护 `/api/cron/backup` 的 Bearer 密钥 |
 
 ## v2 功能
 
@@ -58,7 +55,6 @@ npm run dev
 - MCP:`get_profile` / `search_entries` / `propose_profile_update` / `propose_monthly_investment_update`（提交审计后应立刻更新 status）
 - 导入导出:`/api/import` JSON 导入,`/api/export` 全量 Markdown ZIP
 - 备份:Vercel Cron 每日全量 Markdown 快照到 GitHub 私库;未配置视为未启用,启用后失败或 48 小时未成功才告警
-- 提醒:每月 1 号 09:00(Asia/Shanghai) 经 Resend 发送月度审计提醒邮件
 - Demo seed:`npm run seed:demo` 导入 `console-seed-data.md` 对应的工作事项、持仓、画像层和一条 pending proposal
 
 ## 目录结构
