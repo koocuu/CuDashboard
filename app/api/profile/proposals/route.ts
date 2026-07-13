@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
 
   if (!isValidLayer(layer)) {
     return NextResponse.json(
-      { error: "layer 非法(core/investing/creative/status/private)" },
+      {
+        error:
+          "layer 非法(core/investing/creative/status/private/public/topics)",
+      },
       { status: 400 },
     );
   }

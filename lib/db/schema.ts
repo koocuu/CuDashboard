@@ -85,6 +85,8 @@ export const PROFILE_LAYERS = [
   "creative",
   "status",
   "private",
+  "public",
+  "topics",
 ] as const;
 export type ProfileLayer = (typeof PROFILE_LAYERS)[number];
 

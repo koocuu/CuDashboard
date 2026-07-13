@@ -9,6 +9,7 @@ import {
   type ProfileLayer,
 } from "@/lib/db/schema";
 import { saveLayer } from "@/lib/queries/profile";
+import { isProposalOnlyLayer } from "@/lib/profile-meta";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,20 +28,27 @@ function isProfileLayer(v: unknown): v is ProfileLayer {
   return typeof v === "string" && (PROFILE_LAYERS as readonly string[]).includes(v);
 }
 
-async function importProfileRows(raw: unknown): Promise<number> {
-  if (!raw) return 0;
+async function importProfileRows(
+  raw: unknown,
+): Promise<{ count: number; skipped: string[] }> {
+  const skipped: string[] = [];
+  if (!raw) return { count: 0, skipped };
 
   if (!Array.isArray(raw) && typeof raw === "object") {
     let count = 0;
     for (const [layer, content] of Object.entries(raw as Record<string, unknown>)) {
       if (!isProfileLayer(layer)) continue;
+      if (isProposalOnlyLayer(layer)) {
+        skipped.push(layer);
+        continue;
+      }
       await saveLayer(layer, String(content ?? ""));
       count++;
     }
-    return count;
+    return { count, skipped };
   }
 
-  if (!Array.isArray(raw)) return 0;
+  if (!Array.isArray(raw)) return { count: 0, skipped };
 
   let count = 0;
   for (const row of raw) {
@@ -48,11 +56,15 @@ async function importProfileRows(raw: unknown): Promise<number> {
     const r = row as Record<string, unknown>;
     const layer = r.layer;
     if (!isProfileLayer(layer)) continue;
+    if (isProposalOnlyLayer(layer)) {
+      skipped.push(layer);
+      continue;
+    }
     const content = r.contentMd ?? r.content_md ?? r.content ?? "";
     await saveLayer(layer, String(content));
     count++;
   }
-  return count;
+  return { count, skipped };
 }
 
 /**
@@ -79,7 +91,13 @@ export async function POST(req: NextRequest) {
   for (const key of Object.keys(body)) {
     if (PROFILE_KEYS.has(key)) {
       try {
-        result[key] = await importProfileRows(body[key]);
+        const imported = await importProfileRows(body[key]);
+        result[key] = imported.count;
+        for (const layer of imported.skipped) {
+          errors.push(
+            `${key}.${layer}: public 层只能通过提案批准写入,已跳过批量导入`,
+          );
+        }
       } catch (e) {
         errors.push(`${key}: ${e instanceof Error ? e.message : String(e)}`);
       }

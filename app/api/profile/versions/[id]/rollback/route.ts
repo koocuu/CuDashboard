@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { profileVersions } from "@/lib/db/schema";
 import { saveLayer, isValidLayer } from "@/lib/queries/profile";
+import { isProposalOnlyLayer } from "@/lib/profile-meta";
 
 export const runtime = "nodejs";
 
@@ -26,6 +27,15 @@ export async function POST(
   if (!ver) return NextResponse.json({ error: "未找到版本" }, { status: 404 });
   if (!isValidLayer(ver.layer)) {
     return NextResponse.json({ error: "层非法" }, { status: 400 });
+  }
+  if (isProposalOnlyLayer(ver.layer)) {
+    return NextResponse.json(
+      {
+        error:
+          "public 层不能直接回滚。如需恢复,请以历史内容提交新提案并批准。",
+      },
+      { status: 403 },
+    );
   }
 
   // saveLayer 会把当前版本归档,再写入历史内容

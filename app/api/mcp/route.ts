@@ -33,12 +33,14 @@ const mcpHandler = createMcpHandler(
       {
         title: "Get Profile",
         description:
-          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/investing/creative/status/private);不传则返回该 token 权限内的全部层,包括 private 层。用于让 AI 在新对话中理解用户背景、偏好、当前状态与附录信息。",
+          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/investing/creative/status/private/public/topics);不传则返回该 token 权限内的全部层,包括 private 层(默认不含 public)。用于让 AI 在新对话中理解用户背景、偏好、当前状态与附录信息。",
         inputSchema: {
           layers: z
             .string()
             .optional()
-            .describe("可选。逗号分隔的画像层名,如 core,status 或 core,investing,creative,status。"),
+            .describe(
+              "可选。逗号分隔的画像层名,如 core,status 或 core,investing,creative,status。需要网站公开近况时显式加入 public；需要选题候选时加入 topics。",
+            ),
         },
       },
       async ({ layers }) => {
@@ -132,8 +134,18 @@ const mcpHandler = createMcpHandler(
           "提交画像修改的待确认提案。此工具不会直接覆盖画像,只会在 dashboard 创建 pending proposal,用户需要查看 diff 并批准后才会生效。参数 layer 是目标画像层,content_md 是该层新的完整 Markdown 正文,summary 是这次修改摘要。需要 write token。",
         inputSchema: {
           layer: z
-            .enum(["core", "investing", "creative", "status", "private"])
-            .describe("目标画像层:core/investing/creative/status/private。"),
+            .enum([
+              "core",
+              "investing",
+              "creative",
+              "status",
+              "private",
+              "public",
+              "topics",
+            ])
+            .describe(
+              "目标画像层:core/investing/creative/status/private/public/topics。public 层写给网站 /now,批准后会同步到 koocuu.com。topics 为内容选题候选层(topic-radar 写入)。",
+            ),
           content_md: z
             .string()
             .min(1)

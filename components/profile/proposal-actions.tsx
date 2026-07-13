@@ -30,11 +30,14 @@ export function ProposalActions({
           editedContent: action === "approve" ? content : undefined,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        if (data.websiteSync && data.websiteSync.ok === false && data.websiteSync.warning) {
+          alert(data.websiteSync.warning);
+        }
         router.push("/profile/proposals");
         router.refresh();
       } else {
-        const data = await res.json().catch(() => ({}));
         alert(data.error || "操作失败");
         setBusy(false);
       }

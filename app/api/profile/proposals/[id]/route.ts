@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { profileProposals } from "@/lib/db/schema";
 import { saveLayer, isValidLayer } from "@/lib/queries/profile";
+import { syncPublicLayerToWebsite } from "@/lib/website-sync";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,7 @@ function parseId(s: string): number | null {
 /**
  * POST /api/profile/proposals/[id]  { action: "approve" | "reject", editedContent? }
  * approve:把提案内容(可编辑后)写入对应层(saveLayer 会归档旧版 + version+1)。
+ * public 层批准后额外同步到网站仓库;同步失败不影响画像生效,但会在响应里返回警告。
  */
 export async function POST(
   req: NextRequest,
@@ -59,7 +61,20 @@ export async function POST(
       .update(profileProposals)
       .set({ status: "approved", resolvedAt: new Date() })
       .where(eq(profileProposals.id, id));
-    return NextResponse.json({ ok: true, status: "approved" });
+
+    let websiteSync: { ok: boolean; warning?: string; path?: string } | undefined;
+    if (proposal.layer === "public") {
+      const sync = await syncPublicLayerToWebsite(content);
+      websiteSync = sync.ok
+        ? { ok: true, path: sync.path }
+        : { ok: false, warning: sync.error };
+    }
+
+    return NextResponse.json({
+      ok: true,
+      status: "approved",
+      websiteSync,
+    });
   }
 
   return NextResponse.json({ error: "action 需为 approve/reject" }, { status: 400 });
