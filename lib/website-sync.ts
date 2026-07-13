@@ -1,6 +1,8 @@
 /**
  * Sync the public profile layer to the personal website repo.
  * Uses a dedicated GitHub token/repo (not the daily backup credentials).
+ * Writes via Contents API (single-file PUT) — friendlier for fine-grained PATs
+ * than the Git Data /git/trees flow.
  */
 
 const API = "https://api.github.com";
@@ -42,7 +44,7 @@ export async function syncPublicLayerToWebsite(
   const content = contentMd.replace(/\r\n/g, "\n").trimEnd() + "\n";
 
   try {
-    await commitSingleFile({
+    await upsertFileViaContentsApi({
       token,
       repo,
       branch,
@@ -62,7 +64,11 @@ export async function syncPublicLayerToWebsite(
   }
 }
 
-async function commitSingleFile(opts: {
+function toBase64(text: string): string {
+  return Buffer.from(text, "utf8").toString("base64");
+}
+
+async function upsertFileViaContentsApi(opts: {
   token: string;
   repo: string;
   branch: string;
@@ -78,49 +84,38 @@ async function commitSingleFile(opts: {
     "X-GitHub-Api-Version": "2022-11-28",
   };
 
-  const gh = async (apiPath: string, init?: RequestInit) => {
-    const res = await fetch(`${API}/repos/${repo}${apiPath}`, {
-      ...init,
-      headers: { ...headers, ...(init?.headers ?? {}) },
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`GitHub ${apiPath} ${res.status}: ${body}`);
-    }
-    return res.json();
-  };
+  const encodedPath = path
+    .split("/")
+    .map((p) => encodeURIComponent(p))
+    .join("/");
 
-  const ref = await gh(`/git/ref/heads/${branch}`);
-  const baseCommitSha = ref.object.sha as string;
-  const baseCommit = await gh(`/git/commits/${baseCommitSha}`);
-  const baseTreeSha = baseCommit.tree.sha as string;
+  // Current file SHA is required when updating an existing path.
+  let sha: string | undefined;
+  const getRes = await fetch(
+    `${API}/repos/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`,
+    { headers },
+  );
+  if (getRes.ok) {
+    const existing = (await getRes.json()) as { sha?: string };
+    sha = existing.sha;
+  } else if (getRes.status !== 404) {
+    const body = await getRes.text();
+    throw new Error(`GitHub GET contents ${getRes.status}: ${body}`);
+  }
 
-  const tree = await gh(`/git/trees`, {
-    method: "POST",
-    body: JSON.stringify({
-      base_tree: baseTreeSha,
-      tree: [
-        {
-          path,
-          mode: "100644",
-          type: "blob",
-          content,
-        },
-      ],
-    }),
-  });
-
-  const commit = await gh(`/git/commits`, {
-    method: "POST",
+  const putRes = await fetch(`${API}/repos/${repo}/contents/${encodedPath}`, {
+    method: "PUT",
+    headers,
     body: JSON.stringify({
       message,
-      tree: tree.sha,
-      parents: [baseCommitSha],
+      content: toBase64(content),
+      branch,
+      ...(sha ? { sha } : {}),
     }),
   });
 
-  await gh(`/git/refs/heads/${branch}`, {
-    method: "PATCH",
-    body: JSON.stringify({ sha: commit.sha }),
-  });
+  if (!putRes.ok) {
+    const body = await putRes.text();
+    throw new Error(`GitHub PUT contents ${putRes.status}: ${body}`);
+  }
 }
