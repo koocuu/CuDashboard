@@ -116,6 +116,8 @@ async function upsertFileViaContentsApi(opts: {
 
   if (!putRes.ok) {
     const body = await putRes.text();
-    throw new Error(`GitHub PUT contents ${putRes.status}: ${body}`);
+    throw new Error(
+      `GitHub PUT contents ${putRes.status} (${repo}@${branch}:${path}): ${body}`,
+    );
   }
 }
