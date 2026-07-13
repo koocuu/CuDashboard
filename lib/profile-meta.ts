@@ -40,12 +40,6 @@ export const LAYER_META: Record<
     target: "短文,含 season 与若干 ## 小节",
     order: 5,
   },
-  topics: {
-    label: "内容选题候选",
-    desc: "topic-radar 每日写入的公众号选题候选;批准后供写稿 AI 读取",
-    target: "每日覆盖式更新,含棱角计划/碳基灵感收容所",
-    order: 6,
-  },
 };
 
 export const LAYER_ORDER: ProfileLayer[] = [
@@ -55,26 +49,18 @@ export const LAYER_ORDER: ProfileLayer[] = [
   "status",
   "private",
   "public",
-  "topics",
 ];
 
 /** 两个预设分发版本包含的层。默认不含 public,避免网站公开稿混进 AI 上下文。 */
 export const PRESET_VERSIONS = {
   full: {
     label: "完整版",
-    desc: "core + 全部附录 + private + topics,给主力信任 AI",
-    layers: [
-      "core",
-      "investing",
-      "creative",
-      "status",
-      "private",
-      "topics",
-    ] as ProfileLayer[],
+    desc: "core + 全部附录 + private,给主力信任 AI",
+    layers: ["core", "investing", "creative", "status", "private"] as ProfileLayer[],
   },
   general: {
     label: "通用版",
-    desc: "core + 附录,自动排除 private/topics,给任意新 AI",
+    desc: "core + 附录,自动排除 private,给任意新 AI",
     layers: ["core", "investing", "creative", "status"] as ProfileLayer[],
   },
 };

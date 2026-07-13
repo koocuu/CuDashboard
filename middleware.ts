@@ -17,7 +17,7 @@ const BYPASS_PREFIXES = [
   "/api/mcp",
 ];
 // 精确匹配:仅该路径放行(子路径如 /api/profile/proposals/[id] 仍需 session)
-const BYPASS_EXACT = ["/api/profile/proposals"];
+const BYPASS_EXACT = ["/api/profile/proposals", "/api/topic-batches"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

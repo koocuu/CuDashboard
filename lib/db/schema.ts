@@ -86,7 +86,6 @@ export const PROFILE_LAYERS = [
   "status",
   "private",
   "public",
-  "topics",
 ] as const;
 export type ProfileLayer = (typeof PROFILE_LAYERS)[number];
 
@@ -333,3 +332,28 @@ export const backupRuns = pgTable(
   }),
 );
 export type BackupRun = typeof backupRuns.$inferSelect;
+
+// ============================================================
+// 内容选题雷达（topic-radar）：首页展示，不走画像提案
+// ============================================================
+
+/** 每日选题批次：覆盖写入最新一批，供首页阅读与挑选。 */
+export const topicBatches = pgTable(
+  "topic_batches",
+  {
+    id: serial("id").primaryKey(),
+    day: text("day").notNull(), // YYYY-MM-DD
+    summary: text("summary").notNull().default(""),
+    contentMd: text("content_md").notNull().default(""),
+    candidates: jsonb("candidates").notNull().default([]),
+    sourceName: text("source_name").notNull().default("topic-radar"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    dayIdx: index("topic_batches_day_idx").on(t.day),
+    createdAtIdx: index("topic_batches_created_at_idx").on(t.createdAt),
+  }),
+);
+export type TopicBatch = typeof topicBatches.$inferSelect;

@@ -71,6 +71,13 @@
       "when": 1783904400000,
       "tag": "0009_holding_amount_monthly_review",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783990800000,
+      "tag": "0010_topic_batches",
+      "breakpoints": true
     }
   ]
 }

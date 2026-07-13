@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TopicRadarPanel } from "@/components/dashboard/topic-radar-panel";
 import { QuickAdd } from "@/components/quick-add";
 import { MarkdownLite } from "@/components/ui/markdown-lite";
 import { WorkBoard } from "@/components/work/work-board";
@@ -8,6 +9,7 @@ import { LAYER_META } from "@/lib/profile-meta";
 import { latestBackupRun } from "@/lib/queries/backup";
 import { investStats, listHoldings } from "@/lib/queries/invest";
 import { getAllLayers, listProposals } from "@/lib/queries/profile";
+import { getLatestTopicBatch } from "@/lib/queries/topics";
 import { listWorkItems } from "@/lib/queries/work";
 import { formatDate, formatRelativeTime } from "@/lib/utils";
 
@@ -22,7 +24,7 @@ function logQueryError<T>(label: string, fallback: T) {
 }
 
 export default async function DashboardPage() {
-  const [workItems, invest, holdings, layers, proposals, backup] =
+  const [workItems, invest, holdings, layers, proposals, backup, topicBatch] =
     await Promise.all([
       listWorkItems().catch(logQueryError("work_items", [])),
       investStats().catch(logQueryError("invest_stats", null)),
@@ -30,6 +32,7 @@ export default async function DashboardPage() {
       getAllLayers().catch(logQueryError("profile_layers", [])),
       listProposals().catch(logQueryError("proposals", [])),
       latestBackupRun().catch(logQueryError("backup_runs", null)),
+      getLatestTopicBatch().catch(logQueryError("topic_batches", null)),
     ]);
 
   const statusDoc = layers.find((layer) => layer.layer === "status");
@@ -100,6 +103,8 @@ export default async function DashboardPage() {
             </details>
           )}
         </section>
+
+        <TopicRadarPanel batch={topicBatch} />
 
         {pending.length > 0 && (
           <Link
