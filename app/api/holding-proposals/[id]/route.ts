@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { holdingProposals } from "@/lib/db/schema";
+import { upsertAuditSyncStatusProposal } from "@/lib/audit-status-sync";
 import {
   applyHoldingSnapshot,
   getHoldingProposal,
@@ -41,6 +42,7 @@ export async function POST(
   }
 
   if (body.action === "approve") {
+    let linkedStatusProposalId: number | null = null;
     try {
       await applyHoldingSnapshot(proposal.snapshot);
       if (proposal.month && proposal.reviewData) {
@@ -50,6 +52,12 @@ export async function POST(
           contentMd: renderMonthlyReview(proposal.month, reviewData),
           refreshSnapshot: true,
         });
+        const linked = await upsertAuditSyncStatusProposal({
+          month: proposal.month,
+          conclusion: reviewData.conclusion,
+          triggersAndRules: reviewData.triggers_and_rules,
+        });
+        linkedStatusProposalId = linked.id;
       }
     } catch (error) {
       return NextResponse.json(
@@ -61,7 +69,11 @@ export async function POST(
       .update(holdingProposals)
       .set({ status: "approved", resolvedAt: new Date() })
       .where(eq(holdingProposals.id, id));
-    return NextResponse.json({ ok: true, status: "approved" });
+    return NextResponse.json({
+      ok: true,
+      status: "approved",
+      linkedStatusProposalId,
+    });
   }
 
   return NextResponse.json({ error: "action 需为 approve/reject" }, { status: 400 });

@@ -78,7 +78,7 @@ const mcpHandler = createMcpHandler(
       {
         title: "Propose Monthly Investment Update",
         description:
-          "提交一份固定格式的月度投资更新提案：全量人民币金额持仓 + 四段月度审计。工具只创建待确认提案；用户在 dashboard 投资页批准后，系统才同步持仓、按金额计算占比并固化同一节点的月度快照。holdings 必须包含全部资产并显式包含 symbol=CASH 的现金/余额；未列出的旧活跃仓位会被移出。需要 write 权限。",
+          "提交一份固定格式的月度投资更新提案：全量人民币金额持仓 + 四段月度审计。工具只创建待确认提案；用户在 dashboard 投资页批准后，系统才同步持仓、按金额计算占比并固化同一节点的月度快照。holdings 必须包含全部资产并显式包含 symbol=CASH 的现金/余额；未列出的旧活跃仓位会被移出。需要 write 权限。提交本提案后,应立即基于审计结论(conclusion、triggers_and_rules)调用 propose_profile_update 更新 status 层画像,同步本月纪律状态;这是月度审计流程的固定第二步,无需用户提醒。",
         inputSchema: {
           month: z
             .string()
@@ -113,7 +113,7 @@ const mcpHandler = createMcpHandler(
                 : "mcp",
           });
           return textResult(
-            `已创建 ${month} 月度投资提案 #${proposal.id}：${diff.join("；")}。请用户在 dashboard 投资页确认；批准后持仓和月度审计会在同一节点生效。`,
+            `已创建 ${month} 月度投资提案 #${proposal.id}：${diff.join("；")}。请用户在 dashboard 投资页确认；批准后持仓和月度审计会在同一节点生效，并自动生成 status 层投资纪律联动提案。下一步请立即调用 propose_profile_update 更新 status 层。`,
           );
         } catch (error) {
           return textResult(

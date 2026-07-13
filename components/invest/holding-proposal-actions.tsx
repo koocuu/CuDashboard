@@ -9,7 +9,12 @@ export function HoldingProposalActions({ id }: { id: number }) {
 
   async function act(action: "approve" | "reject") {
     if (busy) return;
-    if (action === "approve" && !confirm("批准后将同步完整金额持仓，并固化该月审计和快照。确认继续？")) {
+    if (
+      action === "approve" &&
+      !confirm(
+        "批准后将同步完整金额持仓、固化该月审计快照，并生成 status 层投资纪律联动提案。确认继续？",
+      )
+    ) {
       return;
     }
     setBusy(true);

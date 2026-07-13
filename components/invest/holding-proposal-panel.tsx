@@ -27,7 +27,7 @@ export function HoldingProposalPanel({
       <div>
         <h2 className="text-sm font-normal text-muted-foreground">持仓更新</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          MCP 提交的完整快照会先在这里确认；批准后才同步真实持仓。
+          MCP 提交的完整快照会先在这里确认；批准后同步真实持仓，并生成 status 层投资纪律联动提案。
         </p>
       </div>
       <div className="space-y-3">

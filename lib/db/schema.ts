@@ -108,7 +108,7 @@ export const profileProposals = pgTable(
     layer: text("layer").notNull(),
     proposedContentMd: text("proposed_content_md").notNull(),
     diffSummary: text("diff_summary").notNull().default(""),
-    source: text("source").notNull().default("paste"), // api / paste / mcp
+    source: text("source").notNull().default("paste"), // api / paste / mcp / audit-sync
     sourceName: text("source_name"), // 哪个 AI / token 名
     status: text("status").notNull().default("pending"), // pending / approved / rejected
     createdAt: timestamp("created_at", { withTimezone: true })

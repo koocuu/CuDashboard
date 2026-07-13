@@ -36,6 +36,12 @@ export default async function DashboardPage() {
   const statusMd = statusDoc?.contentMd ?? "还没有状态层内容。";
   const { preview: statusPreview, rest: statusRest } =
     splitStatusPreview(statusMd);
+  const statusAgeDays = statusDoc?.updatedAt
+    ? Math.floor(
+        (Date.now() - new Date(statusDoc.updatedAt).getTime()) / 86_400_000,
+      )
+    : null;
+  const statusStale = statusAgeDays !== null && statusAgeDays > 35;
   const pending = proposals.filter((p) => p.status === "pending");
   const recentWrites = proposals.slice(0, 5);
   const { slices, total } = buildPositionSlices(holdings, 4);
@@ -57,19 +63,28 @@ export default async function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.82fr)_minmax(0,1.28fr)] xl:grid-cols-[420px_minmax(0,1fr)]">
       <aside className="space-y-5">
         <section className="rounded-xl border bg-card p-4">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <h1 className="text-sm font-normal text-muted-foreground">
               近期状态
             </h1>
-            <span className="font-mono text-[11px] text-primary">
-              {statusDoc?.updatedAt
-                ? formatDate(statusDoc.updatedAt, {
-                    month: "2-digit",
-                    day: "2-digit",
-                  }).replace(/\//g, "-")
-                : "--"}{" "}
-              · v{statusDoc?.version ?? 1}
-            </span>
+            {statusStale ? (
+              <span
+                className="shrink-0 font-mono text-[11px]"
+                style={{ color: "#9A938A" }}
+              >
+                上次更新 {statusAgeDays} 天前
+              </span>
+            ) : (
+              <span className="shrink-0 font-mono text-[11px] text-primary">
+                {statusDoc?.updatedAt
+                  ? formatDate(statusDoc.updatedAt, {
+                      month: "2-digit",
+                      day: "2-digit",
+                    }).replace(/\//g, "-")
+                  : "--"}{" "}
+                · v{statusDoc?.version ?? 1}
+              </span>
+            )}
           </div>
           <div className="text-[15px] leading-7">
             <MarkdownLite content={statusPreview} />

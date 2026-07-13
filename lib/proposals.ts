@@ -7,11 +7,13 @@ import {
   cleanDistributedProfileContent,
 } from "@/lib/profile-content-cleaner";
 
+export type ProposalSource = "api" | "paste" | "mcp" | "audit-sync";
+
 export interface CreateProposalInput {
   layer: ProfileLayer;
   proposedContentMd: string;
   summary?: string;
-  source: "api" | "paste" | "mcp";
+  source: ProposalSource;
   sourceName?: string | null;
   distributionWrapperCleaned?: boolean;
 }
