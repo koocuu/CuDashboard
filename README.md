@@ -138,7 +138,8 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 
 连接成功后 Claude 可使用四个工具:
 
-- `get_profile`: 读取画像层,可用 `layers` 指定 `core/investing/creative/status/private`。
+- `get_profile`: 读取画像层,可用 `layers` 指定 `core/investing/creative/status/private/public/topics`。
 - `search_entries`: 搜索工作事项、持仓和通用条目。
-- `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。
+- `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。`topics` 层供 topic-radar 每日选题候选。
 - `propose_monthly_investment_update`: 提交“全量人民币金额持仓 + 固定四段月度审计”的待确认提案。持仓必须包含 `CASH` 余额项；审计字段固定为 `conclusion`、`triggers_and_rules`、`actions`、`next_month_checks`。用户在投资页批准后，持仓与审计快照同节点生效，并自动生成 `audit-sync` 的 status 联动提案。提交后应立即再调 `propose_profile_update` 更新 status 层。
+- HTTP:`POST /api/profile/proposals`（Bearer write token）与 MCP propose 同通道；topic-radar 使用此接口写 `topics`。
