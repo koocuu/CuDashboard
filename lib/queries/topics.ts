@@ -4,6 +4,7 @@ import { topicBatches } from "@/lib/db/schema";
 
 export type TopicCandidate = {
   title: string
+  title_zh?: string
   url: string
   source: string
   summary?: string

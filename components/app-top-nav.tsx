@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "CONSOLE", tracking: "tracking-[0.22em]" },
+  { href: "/topics", label: "选题", tracking: "tracking-[0.14em]" },
   { href: "/profile", label: "画像", tracking: "tracking-[0.14em]" },
 ] as const;
 
