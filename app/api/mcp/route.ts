@@ -6,6 +6,8 @@ import { verifyOAuthAccessToken } from "@/lib/oauth";
 import { searchAll } from "@/lib/queries/search";
 import { createProposal } from "@/lib/proposals";
 import { isValidLayer } from "@/lib/queries/profile";
+import { getLatestTopicBatch } from "@/lib/queries/topics";
+import { formatTopicBatchMarkdown } from "@/lib/topics-display";
 import {
   createMonthlyInvestmentProposal,
   holdingSnapshotDiff,
@@ -72,6 +74,39 @@ const mcpHandler = createMcpHandler(
           .map((hit) => `[${hit.kind}] #${hit.id} ${hit.title} - ${hit.snippet}`)
           .join("\n");
         return textResult(text);
+      },
+    );
+
+    server.registerTool(
+      "get_topic_batch",
+      {
+        title: "Get Topic Batch",
+        description:
+          "读取 topic-radar 写入的最新选题候选批次（首页「今日选题」/topics 同源数据）。返回 Markdown：中文标题、分数、切入点、原文链接。可选 account 过滤棱角计划(lengjiao)或碳基灵感收容所(carbon)。这不是画像层，也不经提案确认；写稿前仍须人工挑选。",
+        inputSchema: {
+          account: z
+            .string()
+            .optional()
+            .describe(
+              "可选。账号过滤：lengjiao / 棱角计划 / carbon / 碳基灵感收容所。不传则返回全部账号。",
+            ),
+        },
+      },
+      async ({ account }) => {
+        const batch = await getLatestTopicBatch();
+        if (!batch) {
+          return textResult("暂无选题批次。等 topic-radar 跑完后再试。");
+        }
+        const markdown = formatTopicBatchMarkdown({
+          id: batch.id,
+          day: batch.day,
+          summary: batch.summary,
+          contentMd: batch.contentMd,
+          candidates: batch.candidates,
+          createdAt: batch.createdAt,
+          account,
+        });
+        return textResult(markdown);
       },
     );
 

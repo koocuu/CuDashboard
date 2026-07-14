@@ -35,3 +35,81 @@ export function groupTopicCandidates(candidates: TopicCandidate[]) {
   }
   return grouped;
 }
+
+/** 过滤账号：lengjiao / carbon / 中文名均可。 */
+export function filterTopicCandidatesByAccount(
+  candidates: TopicCandidate[],
+  account?: string | null,
+): TopicCandidate[] {
+  const raw = account?.trim();
+  if (!raw) return candidates;
+  const needle = raw.toLowerCase();
+  const aliases: Record<string, string[]> = {
+    lengjiao: ["lengjiao", "棱角计划"],
+    carbon: ["carbon", "碳基灵感收容所", "碳基"],
+  };
+  return candidates.filter((c) => {
+    const id = (c.account_id || "").toLowerCase();
+    const name = c.account_name || "";
+    if (id === needle || name.includes(raw)) return true;
+    for (const [canonical, list] of Object.entries(aliases)) {
+      if (list.some((a) => a.toLowerCase() === needle || a === raw)) {
+        return id === canonical || name.includes(TOPIC_ACCOUNT_LABEL[canonical] ?? "");
+      }
+    }
+    return false;
+  });
+}
+
+/** 供 MCP / 导出：最新选题批次 Markdown。 */
+export function formatTopicBatchMarkdown(input: {
+  id: number;
+  day: string;
+  summary: string;
+  contentMd?: string | null;
+  candidates: unknown;
+  createdAt: Date;
+  account?: string | null;
+}): string {
+  let candidates = asTopicCandidates(input.candidates);
+  candidates = filterTopicCandidatesByAccount(candidates, input.account);
+  const grouped = groupTopicCandidates(candidates);
+
+  if (candidates.length === 0) {
+    if (input.contentMd?.trim() && !input.account) {
+      return input.contentMd.trim();
+    }
+    return input.account
+      ? `选题批次 #${input.id}（${input.day}）中没有账号「${input.account}」的候选。`
+      : `选题批次 #${input.id}（${input.day}）暂无结构化候选。`;
+  }
+
+  const parts: string[] = [
+    `# 选题候选 ${input.day}`,
+    "",
+    `batch #${input.id} · ${input.summary || "topic-radar"}`,
+    "",
+    "说明：以下为待人工挑选的候选，不是已定选题；写稿前请先确认。",
+    "",
+  ];
+
+  for (const [key, items] of grouped) {
+    parts.push(`## ${TOPIC_ACCOUNT_LABEL[key] ?? key}`, "");
+    items.forEach((item, idx) => {
+      parts.push(`### ${idx + 1}. ${topicDisplayTitle(item)}`, "");
+      if (item.title_zh && item.title && item.title_zh !== item.title) {
+        parts.push(`- 原文题: ${item.title}`);
+      }
+      if (typeof item.final_score === "number") {
+        parts.push(`- 分数: ${item.final_score}`);
+      }
+      if (item.source) parts.push(`- 来源: ${item.source}`);
+      parts.push(`- 链接: ${item.url}`);
+      if (item.angle) parts.push(`- 切入点: ${item.angle}`);
+      if (item.rationale) parts.push(`- 理由: ${item.rationale}`);
+      parts.push("");
+    });
+  }
+
+  return parts.join("\n").trim() + "\n";
+}
