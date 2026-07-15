@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { TopicRadarPanel } from "@/components/dashboard/topic-radar-panel";
 import { QuickAdd } from "@/components/quick-add";
 import { MarkdownLite } from "@/components/ui/markdown-lite";
@@ -12,6 +13,10 @@ import { getAllLayers, listProposals } from "@/lib/queries/profile";
 import { getLatestTopicBatch } from "@/lib/queries/topics";
 import { listWorkItems } from "@/lib/queries/work";
 import { formatDate, formatRelativeTime } from "@/lib/utils";
+import {
+  WORK_CATEGORY_ALL,
+  WORK_CATEGORY_FILTER_COOKIE,
+} from "@/lib/work-category-filter";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +29,17 @@ function logQueryError<T>(label: string, fallback: T) {
 }
 
 export default async function DashboardPage() {
+  const cookieStore = await cookies();
+  const rawFilter = cookieStore.get(WORK_CATEGORY_FILTER_COOKIE)?.value;
+  let initialCategoryFilter = WORK_CATEGORY_ALL;
+  if (rawFilter) {
+    try {
+      initialCategoryFilter = decodeURIComponent(rawFilter);
+    } catch {
+      initialCategoryFilter = rawFilter;
+    }
+  }
+
   const [workItems, invest, holdings, layers, proposals, backup, topicBatch] =
     await Promise.all([
       listWorkItems().catch(logQueryError("work_items", [])),
@@ -226,7 +242,11 @@ export default async function DashboardPage() {
               工作台账
             </h2>
           </div>
-          <WorkBoard initialItems={workItems} showQuickAdd={false} />
+          <WorkBoard
+            initialItems={workItems}
+            showQuickAdd={false}
+            initialCategoryFilter={initialCategoryFilter}
+          />
         </section>
       </main>
       </div>

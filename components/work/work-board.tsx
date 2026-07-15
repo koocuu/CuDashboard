@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import {
   DndContext,
   type DragEndEvent,
@@ -26,30 +26,18 @@ import { cn } from "@/lib/utils";
 import { WORK_ITEM_CREATED_EVENT } from "@/components/quick-add";
 import { CategoryPicker } from "./category-picker";
 import { WorkRow } from "./work-row";
+import {
+  WORK_CATEGORY_ALL,
+  WORK_CATEGORY_NONE,
+  writeWorkCategoryFilterCookie,
+} from "@/lib/work-category-filter";
 
 const COMPLETED: WorkStatus[] = ["done"];
 const DROP_PREFIX = "work-status:";
 // 完成超过 60 天的事项自动从列表收起(数据仍保留,导出/备份可见)
 const DONE_VISIBLE_MS = 60 * 24 * 60 * 60 * 1000;
-const ALL_CATEGORIES = "__all__";
-const UNCATEGORIZED = "__none__";
-const CATEGORY_FILTER_KEY = "console:work-category-filter";
-
-function readStoredCategoryFilter() {
-  try {
-    return localStorage.getItem(CATEGORY_FILTER_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredCategoryFilter(value: string) {
-  try {
-    localStorage.setItem(CATEGORY_FILTER_KEY, value);
-  } catch {
-    // ignore quota / private mode
-  }
-}
+const ALL_CATEGORIES = WORK_CATEGORY_ALL;
+const UNCATEGORIZED = WORK_CATEGORY_NONE;
 
 function statusDropId(status: WorkStatus) {
   return `${DROP_PREFIX}${status}`;
@@ -87,9 +75,11 @@ function insertIndexForStatus(items: WorkItem[], status: WorkStatus) {
 export function WorkBoard({
   initialItems,
   showQuickAdd = true,
+  initialCategoryFilter = ALL_CATEGORIES,
 }: {
   initialItems: WorkItem[];
   showQuickAdd?: boolean;
+  initialCategoryFilter?: string;
 }) {
   const [items, setItems] = useState<WorkItem[]>(initialItems);
   const [newName, setNewName] = useState("");
@@ -97,18 +87,29 @@ export function WorkBoard({
   const [showCompleted, setShowCompleted] = useState(false);
   const [adding, setAdding] = useState(false);
   const [draggingId, setDraggingId] = useState<number | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState(ALL_CATEGORIES);
-  const [filterHydrated, setFilterHydrated] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter);
+
+  // 把上一版 localStorage 偏好迁到 cookie，避免升级后还闪一次「全部」
+  useLayoutEffect(() => {
+    try {
+      const legacy = localStorage.getItem("console:work-category-filter");
+      if (!legacy) return;
+      if (
+        initialCategoryFilter === ALL_CATEGORIES &&
+        legacy !== ALL_CATEGORIES
+      ) {
+        setCategoryFilter(legacy);
+        writeWorkCategoryFilterCookie(legacy);
+      }
+      localStorage.removeItem("console:work-category-filter");
+    } catch {
+      // ignore
+    }
+  }, [initialCategoryFilter]);
 
   useEffect(() => {
     setItems(initialItems);
   }, [initialItems]);
-
-  useEffect(() => {
-    const saved = readStoredCategoryFilter();
-    if (saved) setCategoryFilter(saved);
-    setFilterHydrated(true);
-  }, []);
 
   useEffect(() => {
     function onCreated(event: Event) {
@@ -140,8 +141,6 @@ export function WorkBoard({
   const hasUncategorized = items.some((item) => !item.category?.trim());
 
   useEffect(() => {
-    if (!filterHydrated) return;
-
     let next = categoryFilter;
     if (categoryFilter === UNCATEGORIZED && !hasUncategorized) {
       next = ALL_CATEGORIES;
@@ -154,8 +153,8 @@ export function WorkBoard({
     }
 
     if (next !== categoryFilter) setCategoryFilter(next);
-    writeStoredCategoryFilter(next);
-  }, [filterHydrated, categoryFilter, categoriesSignature, hasUncategorized]);
+    writeWorkCategoryFilterCookie(next);
+  }, [categoryFilter, categoriesSignature, hasUncategorized]);
   const categoryFilteredItems = items.filter((item) => {
     if (categoryFilter === ALL_CATEGORIES) return true;
     if (categoryFilter === UNCATEGORIZED) return !item.category?.trim();
