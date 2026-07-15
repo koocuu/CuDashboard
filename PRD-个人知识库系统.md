@@ -154,7 +154,7 @@ PROFILE_UPDATE>>>
 
 解析:提取包裹块;`---` 前为元信息(layer 必填);格式非法给出具体错误提示。
 
-3. **MCP Server(Phase 3)**:`get_profile` / `search_entries` / `propose_profile_update` / `propose_monthly_investment_update`。画像和投资写入均先创建待确认提案。
+3. **MCP Server(Phase 3)**:`get_profile` / `search_entries` / `propose_profile_patch` / `propose_profile_update` / `propose_monthly_investment_update`。画像和投资写入均先创建待确认提案。`propose_profile_patch` 用于按二级标题和条目标题做局部增删改；同一调用方连续修改同一层时累积到同一个 pending proposal，其他来源已有 pending 时拒绝自动合并。
 
 ### 5.6 确认流程
 
@@ -228,7 +228,7 @@ PROFILE_UPDATE>>>
 
 ### Phase 3:MCP Server
 
-验收:claude.ai 添加 Connector 后,可 get_profile、search_entries、提交画像提案和固定格式月度投资提案;所有写入仍走确认流。
+验收:claude.ai 添加 Connector 后,可 get_profile、search_entries、提交整层或局部画像提案和固定格式月度投资提案;连续局部修改只产生一个累计 pending proposal;所有写入仍走确认流。
 
 ---
 

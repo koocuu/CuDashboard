@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "test:profile-patch": "tsx --test lib/profile-patch.test.ts",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",

@@ -16,6 +16,7 @@ import {
 } from "@/lib/holding-proposals";
 import { listHoldings } from "@/lib/queries/invest";
 import { monthlyReviewDataSchema } from "@/lib/invest-review-template";
+import { createProfilePatchProposal } from "@/lib/profile-patch-proposals";
 import type { ProfileLayer } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
@@ -155,6 +156,80 @@ const mcpHandler = createMcpHandler(
         } catch (error) {
           return textResult(
             `错误：${error instanceof Error ? error.message : "持仓快照无效"}`,
+            true,
+          );
+        }
+      },
+    );
+
+    server.registerTool(
+      "propose_profile_patch",
+      {
+        title: "Propose Profile Patch",
+        description:
+          "对画像某一层内的单个条目提交局部增删改提案，适合连续修改一个小点，不需要重发整层 Markdown。用 section 精确定位 ## 二级标题，用 anchor 精确匹配独立的 ### 条目标题或 **条目标题**。第一次调用创建 pending proposal；同一调用方继续修改同一层时，会基于该 pending 候选正文累积修改并更新原提案，始终只保留一个提案 ID。不会直接写入画像，仍需用户在 dashboard 查看 diff 并批准。若该层已有其他来源提案或定位存在歧义，会明确报错而不会猜测。需要 write 权限。",
+        inputSchema: {
+          layer: z
+            .enum(["core", "investing", "creative", "status", "private", "public"])
+            .describe("目标画像层:core/investing/creative/status/private/public。"),
+          section: z
+            .string()
+            .min(1)
+            .describe('二级标题的纯文本，如 "情感复盘记录"，按完整文本精确匹配。'),
+          operation: z
+            .enum(["add", "update", "delete"])
+            .describe("局部操作:add 新增、update 修改、delete 删除。"),
+          anchor: z
+            .string()
+            .default("")
+            .describe(
+              "条目标题的纯文本。update/delete 时必填；add 时表示插入到该条目之后，留空则插入 section 末尾。",
+            ),
+          new_content_md: z
+            .string()
+            .default("")
+            .describe(
+              "add/update 时必填的单条完整 Markdown，必须以 ### 条目标题 或 **条目标题** 开头；delete 时留空。",
+            ),
+          summary: z.string().min(1).describe("本次局部修改摘要，用于提案列表。"),
+        },
+      },
+      async (
+        { layer, section, operation, anchor, new_content_md, summary },
+        extra,
+      ) => {
+        const scopes = extra.authInfo?.scopes ?? [];
+        if (!scopes.includes("write")) {
+          return textResult(
+            "错误：此 token 无写权限，无法提交画像局部修改提案。",
+            true,
+          );
+        }
+        if (!isValidLayer(layer)) {
+          return textResult("错误：layer 非法。", true);
+        }
+
+        try {
+          const sourceName =
+            typeof extra.authInfo?.extra?.tokenName === "string"
+              ? extra.authInfo.extra.tokenName
+              : "mcp";
+          const result = await createProfilePatchProposal({
+            layer: layer as ProfileLayer,
+            section,
+            operation,
+            anchor,
+            newContentMd: new_content_md,
+            summary,
+            sourceName,
+          });
+          const action = result.continued ? "已合并到" : "已创建";
+          return textResult(
+            `${action}待确认画像提案 #${result.proposal.id}：在「${result.patch.section}」中${operation === "add" ? "新增" : operation === "update" ? "修改" : "删除"}「${result.patch.entryTitle}」。请用户在 dashboard 查看累计 diff 并批准后生效。`,
+          );
+        } catch (error) {
+          return textResult(
+            `错误：${error instanceof Error ? error.message : "局部画像提案创建失败"}`,
             true,
           );
         }
