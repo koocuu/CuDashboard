@@ -127,33 +127,33 @@ export function WorkRow({
           >
             {meta.label}
           </span>
-
-          {editingNote ? (
-            <input
-              autoFocus
-              defaultValue={item.note}
-              placeholder="一句话备注"
-              className="h-5 min-w-40 flex-1 bg-transparent text-[11px] leading-none text-muted-foreground outline-none"
-              onBlur={(e) => {
-                setEditingNote(false);
-                const v = e.target.value;
-                if (v !== item.note) onPatch(item.id, { note: v });
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.currentTarget.blur();
-                if (e.key === "Escape") setEditingNote(false);
-              }}
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEditingNote(true)}
-              className="inline-flex h-5 min-w-0 flex-1 items-center truncate text-left text-[11px] leading-none text-muted-foreground/80"
-            >
-              {item.note || <span className="opacity-50">+ 备注</span>}
-            </button>
-          )}
         </div>
+
+        {editingNote ? (
+          <input
+            autoFocus
+            defaultValue={item.note}
+            placeholder="一句话备注"
+            className="mt-1 w-full bg-transparent text-[11px] leading-4 text-muted-foreground outline-none"
+            onBlur={(e) => {
+              setEditingNote(false);
+              const v = e.target.value;
+              if (v !== item.note) onPatch(item.id, { note: v });
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") setEditingNote(false);
+            }}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingNote(true)}
+            className="mt-1 w-full whitespace-pre-wrap break-words text-left text-[11px] leading-4 text-muted-foreground/80"
+          >
+            {item.note || <span className="opacity-50">+ 备注</span>}
+          </button>
+        )}
       </div>
 
       <button
