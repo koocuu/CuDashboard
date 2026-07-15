@@ -33,6 +33,23 @@ const DROP_PREFIX = "work-status:";
 const DONE_VISIBLE_MS = 60 * 24 * 60 * 60 * 1000;
 const ALL_CATEGORIES = "__all__";
 const UNCATEGORIZED = "__none__";
+const CATEGORY_FILTER_KEY = "console:work-category-filter";
+
+function readStoredCategoryFilter() {
+  try {
+    return localStorage.getItem(CATEGORY_FILTER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredCategoryFilter(value: string) {
+  try {
+    localStorage.setItem(CATEGORY_FILTER_KEY, value);
+  } catch {
+    // ignore quota / private mode
+  }
+}
 
 function statusDropId(status: WorkStatus) {
   return `${DROP_PREFIX}${status}`;
@@ -81,10 +98,17 @@ export function WorkBoard({
   const [adding, setAdding] = useState(false);
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState(ALL_CATEGORIES);
+  const [filterHydrated, setFilterHydrated] = useState(false);
 
   useEffect(() => {
     setItems(initialItems);
   }, [initialItems]);
+
+  useEffect(() => {
+    const saved = readStoredCategoryFilter();
+    if (saved) setCategoryFilter(saved);
+    setFilterHydrated(true);
+  }, []);
 
   useEffect(() => {
     function onCreated(event: Event) {
@@ -112,7 +136,26 @@ export function WorkBoard({
         .filter((category): category is string => Boolean(category)),
     ),
   ).sort((a, b) => a.localeCompare(b, "zh-CN"));
+  const categoriesSignature = categories.join("\0");
   const hasUncategorized = items.some((item) => !item.category?.trim());
+
+  useEffect(() => {
+    if (!filterHydrated) return;
+
+    let next = categoryFilter;
+    if (categoryFilter === UNCATEGORIZED && !hasUncategorized) {
+      next = ALL_CATEGORIES;
+    } else if (
+      categoryFilter !== ALL_CATEGORIES &&
+      categoryFilter !== UNCATEGORIZED &&
+      !categoriesSignature.split("\0").includes(categoryFilter)
+    ) {
+      next = ALL_CATEGORIES;
+    }
+
+    if (next !== categoryFilter) setCategoryFilter(next);
+    writeStoredCategoryFilter(next);
+  }, [filterHydrated, categoryFilter, categoriesSignature, hasUncategorized]);
   const categoryFilteredItems = items.filter((item) => {
     if (categoryFilter === ALL_CATEGORIES) return true;
     if (categoryFilter === UNCATEGORIZED) return !item.category?.trim();
