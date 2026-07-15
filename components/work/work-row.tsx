@@ -130,19 +130,22 @@ export function WorkRow({
         </div>
 
         {editingNote ? (
-          <input
+          <textarea
             autoFocus
             defaultValue={item.note}
             placeholder="一句话备注"
-            className="mt-1 w-full bg-transparent text-[11px] leading-4 text-muted-foreground outline-none"
+            rows={Math.min(6, Math.max(2, (item.note || "").split("\n").length + 1))}
+            className="mt-1 w-full resize-y bg-transparent text-[11px] leading-4 text-muted-foreground outline-none"
             onBlur={(e) => {
               setEditingNote(false);
               const v = e.target.value;
               if (v !== item.note) onPatch(item.id, { note: v });
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
               if (e.key === "Escape") setEditingNote(false);
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.currentTarget.blur();
+              }
             }}
           />
         ) : (
