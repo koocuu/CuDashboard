@@ -81,6 +81,27 @@ export default async function TopicsPage() {
                             </span>
                           )}
                         </div>
+                        {item.anchor?.trim() && (
+                          <p className="mt-2 text-sm leading-6">
+                            <span className="text-muted-foreground">锚点 · </span>
+                            {item.anchor}
+                          </p>
+                        )}
+                        {(typeof item.anchor_score === "number" ||
+                          typeof item.angle_authenticity === "number" ||
+                          typeof item.heat === "number") && (
+                          <div className="mt-1 flex flex-wrap gap-x-3 font-mono text-[11px] text-muted-foreground">
+                            {typeof item.anchor_score === "number" && (
+                              <span>锚点 {item.anchor_score}/10</span>
+                            )}
+                            {typeof item.angle_authenticity === "number" && (
+                              <span>真实 {item.angle_authenticity}/10</span>
+                            )}
+                            {typeof item.heat === "number" && (
+                              <span>热度 {item.heat}/10</span>
+                            )}
+                          </div>
+                        )}
                         {item.angle && (
                           <p className="mt-2 text-sm leading-6">
                             <span className="text-muted-foreground">切入点 · </span>

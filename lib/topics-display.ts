@@ -100,8 +100,16 @@ export function formatTopicBatchMarkdown(input: {
       if (item.title_zh && item.title && item.title_zh !== item.title) {
         parts.push(`- 原文题: ${item.title}`);
       }
+      if (item.anchor?.trim()) parts.push(`- 锚点: ${item.anchor}`);
       if (typeof item.final_score === "number") {
-        parts.push(`- 分数: ${item.final_score}`);
+        const parts3 = [
+          typeof item.anchor_score === "number" ? `锚点 ${item.anchor_score}/10` : null,
+          typeof item.angle_authenticity === "number" ? `真实 ${item.angle_authenticity}/10` : null,
+          typeof item.heat === "number" ? `热度 ${item.heat}/10` : null,
+        ].filter(Boolean);
+        parts.push(
+          `- 分数: ${item.final_score}${parts3.length ? `（${parts3.join(" · ")}）` : ""}`,
+        );
       }
       if (item.source) parts.push(`- 来源: ${item.source}`);
       parts.push(`- 链接: ${item.url}`);

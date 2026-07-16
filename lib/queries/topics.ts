@@ -12,6 +12,14 @@ export type TopicCandidate = {
   account_name?: string
   final_score?: number
   score?: number
+  /** 锚点：可被还原成场景/精确数字的具体细节。 */
+  anchor?: string
+  /** 锚点分 0-10。 */
+  anchor_score?: number
+  /** 切入点真实性 0-10。 */
+  angle_authenticity?: number
+  /** 热度 0-10。 */
+  heat?: number
   angle?: string
   rationale?: string
   published_at?: string | null
