@@ -95,6 +95,30 @@ test("supports level-three entry headings", () => {
   assert.match(result.contentMd, /### 条目 B\n\n保留/);
 });
 
+test("matches the complete title instead of a similar prefix", () => {
+  const content = `## 记录\n\n**近期**\n\n短标题内容\n\n**近期状态**\n\n长标题内容`;
+  const result = applyProfilePatch({
+    contentMd: content,
+    section: "记录",
+    operation: "update",
+    anchor: "近期",
+    newContentMd: "**近期**\n\n只修改精确匹配项",
+  });
+
+  assert.match(result.contentMd, /\*\*近期\*\*\n\n只修改精确匹配项/);
+  assert.match(result.contentMd, /\*\*近期状态\*\*\n\n长标题内容/);
+  assert.throws(
+    () =>
+      applyProfilePatch({
+        contentMd: content,
+        section: "记录",
+        operation: "delete",
+        anchor: "近期状",
+      }),
+    /未找到条目：近期状/,
+  );
+});
+
 test("ignores headings and entries inside fenced code blocks", () => {
   const content = `## 记录\n\n\`\`\`md\n**伪条目**\n## 伪分区\n\`\`\`\n\n**真条目**\n正文`;
   const result = applyProfilePatch({
