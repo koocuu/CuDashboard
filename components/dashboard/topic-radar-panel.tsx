@@ -78,6 +78,11 @@ export function TopicRadarPanel({ batch }: { batch: TopicBatchView | null }) {
                         锚点 · {item.anchor}
                       </p>
                     )}
+                    {item.caveat?.trim() && (
+                      <p className="mt-0.5 text-[11px] text-amber-600 dark:text-amber-500">
+                        {item.caveat}
+                      </p>
+                    )}
                     <div className="mt-0.5 flex flex-wrap gap-x-2 font-mono text-[11px] text-muted-foreground">
                       {typeof item.final_score === "number" && (
                         <span>{item.final_score} 分</span>

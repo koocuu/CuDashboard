@@ -20,6 +20,8 @@ export type TopicCandidate = {
   angle_authenticity?: number
   /** 热度 0-10。 */
   heat?: number
+  /** 安全/漏洞类核实提醒（⚠ …）；无则空。 */
+  caveat?: string
   angle?: string
   rationale?: string
   published_at?: string | null

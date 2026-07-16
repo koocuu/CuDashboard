@@ -113,6 +113,11 @@ export default async function TopicsPage() {
                             {item.rationale}
                           </p>
                         )}
+                        {item.caveat?.trim() && (
+                          <p className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs leading-5 text-amber-700 dark:text-amber-400">
+                            {item.caveat}
+                          </p>
+                        )}
                         <a
                           href={item.url}
                           target="_blank"

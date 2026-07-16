@@ -115,6 +115,7 @@ export function formatTopicBatchMarkdown(input: {
       parts.push(`- 链接: ${item.url}`);
       if (item.angle) parts.push(`- 切入点: ${item.angle}`);
       if (item.rationale) parts.push(`- 理由: ${item.rationale}`);
+      if (item.caveat?.trim()) parts.push(`- 核实: ${item.caveat}`);
       parts.push("");
     });
   }
