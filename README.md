@@ -141,7 +141,7 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 - `get_profile`: 读取画像层,可用 `layers` 指定 `core/investing/creative/status/private/public`。
 - `search_entries`: 搜索工作事项、持仓和通用条目。
 - `get_topic_batch`: 读取 topic-radar 最新选题候选（可选 `account=lengjiao|carbon`）；与画像提案无关。
-- `propose_profile_patch`: 按 `##` 二级标题和独立条目标题精确定位，局部新增、修改或删除画像条目。同一调用方连续修改同一层时会累积到同一个 pending proposal，不会生成互相覆盖的多份候选稿。
+- `propose_profile_patch`: 按 `##` 二级标题和条目标题精确定位，支持 `### 标题`、独立 `**标题**`、`**标题**: 正文` 三种条目格式，局部新增、修改或删除画像条目。同一调用方连续修改同一层时会累积到同一个 pending proposal，不会生成互相覆盖的多份候选稿。
 - `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。
 - `propose_monthly_investment_update`: 提交“全量人民币金额持仓 + 固定四段月度审计”的待确认提案。持仓必须包含 `CASH` 余额项；审计字段固定为 `conclusion`、`triggers_and_rules`、`actions`、`next_month_checks`。用户在投资页批准后，持仓与审计快照同节点生效，并自动生成 `audit-sync` 的 status 联动提案。提交后应立即再调 `propose_profile_update` 更新 status 层。
 - HTTP:`POST /api/profile/proposals`（Bearer write token）用于画像提案；`POST /api/topic-batches` 用于 topic-radar 写入首页「今日选题」（不走提案）。

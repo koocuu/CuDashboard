@@ -167,7 +167,7 @@ const mcpHandler = createMcpHandler(
       {
         title: "Propose Profile Patch",
         description:
-          "对画像某一层内的单个条目提交局部增删改提案，适合连续修改一个小点，不需要重发整层 Markdown。用 section 精确定位 ## 二级标题，用 anchor 精确匹配独立的 ### 条目标题或 **条目标题**。第一次调用创建 pending proposal；同一调用方继续修改同一层时，会基于该 pending 候选正文累积修改并更新原提案，始终只保留一个提案 ID。不会直接写入画像，仍需用户在 dashboard 查看 diff 并批准。若该层已有其他来源提案或定位存在歧义，会明确报错而不会猜测。需要 write 权限。",
+          "对画像某一层内的单个条目提交局部增删改提案，适合连续修改一个小点，不需要重发整层 Markdown。用 section 精确定位 ## 二级标题，用 anchor 精确匹配 ### 条目标题、独立 **条目标题** 或 **条目标题**: 正文。第一次调用创建 pending proposal；同一调用方继续修改同一层时，会基于该 pending 候选正文累积修改并更新原提案，始终只保留一个提案 ID。不会直接写入画像，仍需用户在 dashboard 查看 diff 并批准。若该层已有其他来源提案或定位存在歧义，会明确报错而不会猜测。需要 write 权限。",
         inputSchema: {
           layer: z
             .enum(["core", "investing", "creative", "status", "private", "public"])
@@ -189,7 +189,7 @@ const mcpHandler = createMcpHandler(
             .string()
             .default("")
             .describe(
-              "add/update 时必填的单条完整 Markdown，必须以 ### 条目标题 或 **条目标题** 开头；delete 时留空。",
+              "add/update 时必填的单条完整 Markdown，必须以 ### 条目标题、独立 **条目标题** 或 **条目标题**: 正文开头；delete 时留空。",
             ),
           summary: z.string().min(1).describe("本次局部修改摘要，用于提案列表。"),
         },

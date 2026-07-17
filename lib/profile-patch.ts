@@ -69,7 +69,9 @@ function unwrapTitle(value: string): string {
 }
 
 function boldEntryFromLine(line: MarkdownLine): EntryMarker | null {
-  const match = line.text.match(/^[ ]{0,3}\*\*(.+)\*\*[ \t]*$/);
+  const match = line.text.match(
+    /^[ ]{0,3}\*\*(.+?)\*\*(?:[ \t]*[:：][ \t]*.*)?[ \t]*$/,
+  );
   if (!match || match[1].includes("**")) return null;
   const title = match[1].trim();
   return title ? { title, line } : null;
@@ -147,7 +149,9 @@ function validateNewEntry(raw: string | undefined, operation: ProfilePatchOperat
   )?.start;
   const firstEntry = scan.entries[0];
   if (!firstEntry || firstEntry.line.start !== firstContentOffset) {
-    throw new Error("new_content_md 必须以 ### 条目标题 或 **条目标题** 开头");
+    throw new Error(
+      "new_content_md 必须以 ### 条目标题、**条目标题** 或 **条目标题**: 正文开头",
+    );
   }
   if (scan.entries.length !== 1) {
     throw new Error("new_content_md 必须且只能包含一个可定位条目");

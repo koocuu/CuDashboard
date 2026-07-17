@@ -95,6 +95,32 @@ test("supports level-three entry headings", () => {
   assert.match(result.contentMd, /### 条目 B\n\n保留/);
 });
 
+test("supports inline bold-label entries used by the investing layer", () => {
+  const content = `## 已知行为弱点(重要)\n\n这里先有一段普通说明。\n\n**旧教训**: 旧内容\n\n## 下一节\n\n保留`;
+  const added = applyProfilePatch({
+    contentMd: content,
+    section: "已知行为弱点(重要)",
+    operation: "add",
+    anchor: "",
+    newContentMd: "**低beta资产的价值**: 第一次补充",
+  });
+  const updated = applyProfilePatch({
+    contentMd: added.contentMd,
+    section: "已知行为弱点(重要)",
+    operation: "update",
+    anchor: "低beta资产的价值",
+    newContentMd: "**低beta资产的价值**：第二次累计修改",
+  });
+
+  assert.match(updated.contentMd, /\*\*旧教训\*\*: 旧内容/);
+  assert.match(
+    updated.contentMd,
+    /\*\*低beta资产的价值\*\*：第二次累计修改/,
+  );
+  assert.doesNotMatch(updated.contentMd, /第一次补充/);
+  assert.match(updated.contentMd, /## 下一节\n\n保留/);
+});
+
 test("matches the complete title instead of a similar prefix", () => {
   const content = `## 记录\n\n**近期**\n\n短标题内容\n\n**近期状态**\n\n长标题内容`;
   const result = applyProfilePatch({
@@ -181,7 +207,7 @@ test("requires exactly one complete entry for add and update", () => {
         operation: "add",
         newContentMd: "没有条目标题",
       }),
-    /必须以 ### 条目标题 或 \*\*条目标题\*\* 开头/,
+    /必须以 ### 条目标题/,
   );
 
   assert.throws(
