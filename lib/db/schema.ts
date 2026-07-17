@@ -81,6 +81,7 @@ export function normalizeWorkStatus(status: string | null | undefined): WorkStat
 
 export const PROFILE_LAYERS = [
   "core",
+  "milestones",
   "investing",
   "creative",
   "status",

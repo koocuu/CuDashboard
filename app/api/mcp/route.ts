@@ -36,13 +36,13 @@ const mcpHandler = createMcpHandler(
       {
         title: "Get Profile",
         description:
-          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/investing/creative/status/private/public);不传则返回该 token 权限内的全部层,包括 private 层(默认不含 public)。用于让 AI 在新对话中理解用户背景、偏好、当前状态与附录信息。",
+          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/milestones/investing/creative/status/private/public);不传则返回该 token 权限内的全部层,包括 private 层(默认不含 public)。用于让 AI 在新对话中理解用户背景、重要人生节点、偏好、当前状态与附录信息。",
         inputSchema: {
           layers: z
             .string()
             .optional()
             .describe(
-              "可选。逗号分隔的画像层名,如 core,status 或 core,investing,creative,status。需要网站公开近况时显式加入 public。",
+              "可选。逗号分隔的画像层名,如 core,milestones,status 或 core,milestones,investing,creative,status。需要网站公开近况时显式加入 public。",
             ),
         },
       },
@@ -170,8 +170,16 @@ const mcpHandler = createMcpHandler(
           "对画像某一层内的单个条目提交局部增删改提案，适合连续修改一个小点，不需要重发整层 Markdown。用 section 精确定位 ## 二级标题，用 anchor 精确匹配 ### 条目标题、独立 **条目标题** 或 **条目标题**: 正文。第一次调用创建 pending proposal；同一调用方继续修改同一层时，会基于该 pending 候选正文累积修改并更新原提案，始终只保留一个提案 ID。不会直接写入画像，仍需用户在 dashboard 查看 diff 并批准。若该层已有其他来源提案或定位存在歧义，会明确报错而不会猜测。需要 write 权限。",
         inputSchema: {
           layer: z
-            .enum(["core", "investing", "creative", "status", "private", "public"])
-            .describe("目标画像层:core/investing/creative/status/private/public。"),
+            .enum([
+              "core",
+              "milestones",
+              "investing",
+              "creative",
+              "status",
+              "private",
+              "public",
+            ])
+            .describe("目标画像层:core/milestones/investing/creative/status/private/public。"),
           section: z
             .string()
             .min(1)
@@ -244,9 +252,17 @@ const mcpHandler = createMcpHandler(
           "提交画像修改的待确认提案。此工具不会直接覆盖画像,只会在 dashboard 创建 pending proposal,用户需要查看 diff 并批准后才会生效。参数 layer 是目标画像层,content_md 是该层新的完整 Markdown 正文,summary 是这次修改摘要。需要 write token。",
         inputSchema: {
           layer: z
-            .enum(["core", "investing", "creative", "status", "private", "public"])
+            .enum([
+              "core",
+              "milestones",
+              "investing",
+              "creative",
+              "status",
+              "private",
+              "public",
+            ])
             .describe(
-              "目标画像层:core/investing/creative/status/private/public。public 层写给网站 /now,批准后会同步到 koocuu.com。",
+              "目标画像层:core/milestones/investing/creative/status/private/public。public 层写给网站 /now,批准后会同步到 koocuu.com。",
             ),
           content_md: z
             .string()
