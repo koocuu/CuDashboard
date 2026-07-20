@@ -97,7 +97,7 @@ export function DistributionPanel() {
               )}
             >
               {LAYER_META[layer].label}
-              {layer === "private" && on && " ⚠"}
+              {layer === "relationship" && on && " ⚠"}
             </button>
           );
         })}

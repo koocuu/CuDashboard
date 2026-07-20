@@ -17,6 +17,7 @@ import {
   WORK_CATEGORY_ALL,
   WORK_CATEGORY_FILTER_COOKIE,
 } from "@/lib/work-category-filter";
+import { extractInternalStatusForDashboard } from "@/lib/status-sections";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,9 @@ export default async function DashboardPage() {
     ]);
 
   const statusDoc = layers.find((layer) => layer.layer === "status");
-  const statusMd = statusDoc?.contentMd ?? "还没有状态层内容。";
+  const statusMd = extractInternalStatusForDashboard(
+    statusDoc?.contentMd ?? "还没有状态层内容。",
+  );
   const { preview: statusPreview, rest: statusRest } =
     splitStatusPreview(statusMd);
   const statusAgeDays = statusDoc?.updatedAt

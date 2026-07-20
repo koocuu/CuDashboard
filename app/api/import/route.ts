@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         result[key] = imported.count;
         for (const layer of imported.skipped) {
           errors.push(
-            `${key}.${layer}: public 层只能通过提案批准写入,已跳过批量导入`,
+            `${key}.${layer}: 非法或已废弃层,已跳过批量导入`,
           );
         }
       } catch (e) {

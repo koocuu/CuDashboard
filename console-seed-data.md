@@ -43,23 +43,16 @@
 ]
 ```
 
-## 3. profile_doc — status 层(近期状态,示例初稿,用户会改写)
+## 3. profile_doc — 四层(core / status / investing / relationship)
 
-```json
-{
-  "layer": "status",
-  "content_md": "## 近期状态(2026-07)\n\n**主线**:个人控制台系统 Console 进入开发验收阶段(Phase 1-2),由 AI 结对开发,目标是替代记事本并建立跨 AI 的画像分发能力。\n\n**工作**:ANR 治理已完成待外部确认;选本共创系统 P0 落地,P1 排期中;Engage SDK 与 Launcher 性能优化在排期。\n\n**创作**:碳基灵感收容所推进'硅基生命的致命弱点'方向(参数固化 vs 人类经验自改写),棱角计划持续更新。\n\n**投资**:仓位结构按 A股CPO / A股存储 / A股半设 / QQQ / 美股半导体 / 美股存储 / 黄金 / 债券 / 现金 聚合维护,当前纪律是不做叙事驱动的反应式调仓。\n\n**基调**:平稳偏投入,周末在恢复 dates 节奏。"
-}
-```
-
-## 4. profile_doc — 其余四层(仅占位一句话,等用户与 AI 协作撰写正式版)
+status 须含「## 内部状态」与「## 公开状态」；网站 /now 只读公开状态节。
 
 ```json
 [
-  { "layer": "core", "content_md": "(待撰写:身份、职业、性格与沟通偏好、人生主线。约 1500 字。)" },
-  { "layer": "investing", "content_md": "(待撰写:投资框架、结构概述、行为弱点、AI 应扮演的刹车角色。约 800 字。)" },
-  { "layer": "creative", "content_md": "(待撰写:两个公众号定位、写作风格、世界观设定摘要。约 800 字。)" },
-  { "layer": "private", "content_md": "(待撰写:仅完整版分发。)" }
+  { "layer": "core", "content_md": "(待撰写:身份、职业、性格与沟通偏好、人生主线、创作附录。)" },
+  { "layer": "status", "content_md": "## 内部状态\n\n**主线**:…\n\n## 公开状态\n\n---\nseason: 2026 夏\n---\n\n## 在做\n\n…" },
+  { "layer": "investing", "content_md": "(待撰写:投资框架、结构、弱点、历程。)" },
+  { "layer": "relationship", "content_md": "(待撰写:情感与社交、关系复盘。仅完整版。)" }
 ]
 ```
 

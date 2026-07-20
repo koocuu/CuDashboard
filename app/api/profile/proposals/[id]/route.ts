@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { profileProposals } from "@/lib/db/schema";
 import { saveLayer, isValidLayer } from "@/lib/queries/profile";
+import { extractPublicStatusForWebsite } from "@/lib/status-sections";
 import { syncPublicLayerToWebsite } from "@/lib/website-sync";
 
 export const runtime = "nodejs";
@@ -15,7 +16,7 @@ function parseId(s: string): number | null {
 /**
  * POST /api/profile/proposals/[id]  { action: "approve" | "reject", editedContent? }
  * approve:把提案内容(可编辑后)写入对应层(saveLayer 会归档旧版 + version+1)。
- * public 层批准后额外同步到网站仓库;同步失败不影响画像生效,但会在响应里返回警告。
+ * status 层批准后把「公开状态」节同步到网站 /now;同步失败不影响画像生效,但会在响应里返回警告。
  */
 export async function POST(
   req: NextRequest,
@@ -63,11 +64,14 @@ export async function POST(
       .where(eq(profileProposals.id, id));
 
     let websiteSync: { ok: boolean; warning?: string; path?: string } | undefined;
-    if (proposal.layer === "public") {
-      const sync = await syncPublicLayerToWebsite(content);
-      websiteSync = sync.ok
-        ? { ok: true, path: sync.path }
-        : { ok: false, warning: sync.error };
+    if (proposal.layer === "status") {
+      const publicSection = extractPublicStatusForWebsite(content);
+      if (publicSection.trim()) {
+        const sync = await syncPublicLayerToWebsite(publicSection);
+        websiteSync = sync.ok
+          ? { ok: true, path: sync.path }
+          : { ok: false, warning: sync.error };
+      }
     }
 
     return NextResponse.json({

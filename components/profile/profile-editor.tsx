@@ -20,25 +20,31 @@ export function ProfileEditor({ layer, meta, initialContent, version }: Props) {
   const [saved, setSaved] = useState(initialContent);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
-  const proposalOnly = layer === "public";
+  const [syncNote, setSyncNote] = useState<string | null>(null);
 
   const dirty = content !== saved;
 
   async function save() {
-    if (proposalOnly || !dirty || saving) return;
+    if (!dirty || saving) return;
     setSaving(true);
+    setSyncNote(null);
     try {
       const res = await fetch(`/api/profile/layers/${layer}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contentMd: content }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setSaved(content);
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 1500);
+        if (data.websiteSync?.ok) {
+          setSyncNote(`已同步公开状态 → ${data.websiteSync.path || "/now"}`);
+        } else if (data.websiteSync?.warning) {
+          setSyncNote(data.websiteSync.warning);
+        }
       } else {
-        const data = await res.json().catch(() => ({}));
         alert(data.error || "保存失败");
       }
     } finally {
@@ -58,17 +64,12 @@ export function ProfileEditor({ layer, meta, initialContent, version }: Props) {
           <div className="flex items-center gap-2">
             <span className="font-medium">{meta.label}</span>
             <span className="font-mono text-xs text-muted-foreground">v{version}</span>
-            {layer === "private" && (
+            {layer === "relationship" && (
               <span className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                 仅完整版
               </span>
             )}
-            {proposalOnly && (
-              <span className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                仅提案
-              </span>
-            )}
-            {dirty && !proposalOnly && (
+            {dirty && (
               <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
             )}
           </div>
@@ -85,48 +86,41 @@ export function ProfileEditor({ layer, meta, initialContent, version }: Props) {
 
       {open && (
         <div className="space-y-2 border-t px-4 py-3">
-          {proposalOnly ? (
-            <>
-              <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-3 font-mono text-sm leading-relaxed text-muted-foreground">
-                {saved.trim() ? saved : "（尚无内容。请通过画像提案写入 public 层。）"}
-              </pre>
-              <p className="text-xs text-muted-foreground">
-                public 层只能走「提案 → diff → 批准」。批准后会同步到网站{" "}
-                <span className="font-mono">/zh/now/</span>。
-              </p>
-            </>
-          ) : (
-            <>
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={10}
-                placeholder={`在此撰写「${meta.label}」的 Markdown 内容…`}
-                className="font-mono text-sm leading-relaxed"
-              />
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  <span className="font-mono">{chars}</span> 字 · 目标 {meta.target}
-                </span>
-                <Button
-                  size="sm"
-                  onClick={save}
-                  disabled={!dirty || saving}
-                  className={cn(justSaved && "border-positive text-positive")}
-                >
-                  {justSaved ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" /> 已保存
-                    </>
-                  ) : saving ? (
-                    "保存中…"
-                  ) : (
-                    "保存"
-                  )}
-                </Button>
-              </div>
-            </>
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={10}
+            placeholder={`在此撰写「${meta.label}」的 Markdown 内容…`}
+            className="font-mono text-sm leading-relaxed"
+          />
+          {layer === "status" && (
+            <p className="text-xs text-muted-foreground">
+              请保持「## 内部状态」与「## 公开状态」两节。「公开状态」保存后同步到网站{" "}
+              <span className="font-mono">/zh/now/</span>。
+            </p>
           )}
+          {syncNote && (
+            <p className="text-xs text-muted-foreground">{syncNote}</p>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              <span className="font-mono">{chars}</span> 字 · 目标 {meta.target}
+            </span>
+            <Button
+              size="sm"
+              onClick={save}
+              disabled={!dirty || saving}
+              className={cn(justSaved && "border-positive text-positive")}
+            >
+              {justSaved ? (
+                <>
+                  <Check className="h-3.5 w-3.5" /> 已保存
+                </>
+              ) : (
+                "保存"
+              )}
+            </Button>
+          </div>
         </div>
       )}
     </div>

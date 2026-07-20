@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "layer 非法(core/milestones/investing/creative/status/private/public)",
+          "layer 非法(core/status/investing/relationship)",
       },
       { status: 400 },
     );

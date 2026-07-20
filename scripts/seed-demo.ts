@@ -134,27 +134,45 @@ const holdingSeed: Array<{
   },
 ];
 
-const statusContent =
-  "## 近期状态(2026-07)\n\n**主线**:个人控制台系统 Console 进入开发验收阶段(Phase 1-2),由 AI 结对开发,目标是替代记事本并建立跨 AI 的画像分发能力。\n\n**工作**:ANR 治理已完成待外部确认;选本共创系统 P0 落地,P1 排期中;Engage SDK 与 Launcher 性能优化在排期。\n\n**创作**:碳基灵感收容所推进'硅基生命的致命弱点'方向(参数固化 vs 人类经验自改写),棱角计划持续更新。\n\n**投资**:仓位结构按 A股CPO / A股存储 / A股半设 / QQQ / 美股半导体 / 美股存储 / 黄金 / 债券 / 现金 聚合维护,当前纪律是不做叙事驱动的反应式调仓。\n\n**基调**:平稳偏投入,周末在恢复 dates 节奏。";
+const statusContent = `## 内部状态
+
+**主线**:个人控制台系统 Console 进入开发验收阶段(Phase 1-2),由 AI 结对开发,目标是替代记事本并建立跨 AI 的画像分发能力。
+
+**工作**:ANR 治理已完成待外部确认;选本共创系统 P0 落地,P1 排期中;Engage SDK 与 Launcher 性能优化在排期。
+
+**创作**:碳基灵感收容所推进'硅基生命的致命弱点'方向(参数固化 vs 人类经验自改写),棱角计划持续更新。
+
+**投资**:仓位结构按 A股CPO / A股存储 / A股半设 / QQQ / 美股半导体 / 美股存储 / 黄金 / 债券 / 现金 聚合维护,当前纪律是不做叙事驱动的反应式调仓。
+
+**基调**:平稳偏投入,周末在恢复 dates 节奏。
+
+## 公开状态
+
+---
+season: 2026 夏
+---
+
+## 在做
+
+（待撰写公开近况）
+`;
 
 const layerSeed: Array<{ layer: ProfileLayer; contentMd: string }> = [
   { layer: "status", contentMd: statusContent },
   {
     layer: "core",
     contentMd:
-      "(待撰写:身份、职业、性格与沟通偏好、人生主线。约 1500 字。)",
+      "(待撰写:身份、职业、性格与沟通偏好、人生主线、创作附录。约 2000 字。)",
   },
   {
     layer: "investing",
     contentMd:
-      "(待撰写:投资框架、结构概述、行为弱点、AI 应扮演的刹车角色。约 800 字。)",
+      "(待撰写:投资框架、结构概述、行为弱点、AI 刹车角色、投资历程。约 1500 字。)",
   },
   {
-    layer: "creative",
-    contentMd:
-      "(待撰写:两个公众号定位、写作风格、世界观设定摘要。约 800 字。)",
+    layer: "relationship",
+    contentMd: "(待撰写:情感与社交、关系复盘。仅完整版分发。)",
   },
-  { layer: "private", contentMd: "(待撰写:仅完整版分发。)" },
 ];
 
 async function upsertWork() {

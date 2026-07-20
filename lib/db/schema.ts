@@ -81,16 +81,13 @@ export function normalizeWorkStatus(status: string | null | undefined): WorkStat
 
 export const PROFILE_LAYERS = [
   "core",
-  "milestones",
-  "investing",
-  "creative",
   "status",
-  "private",
-  "public",
+  "investing",
+  "relationship",
 ] as const;
 export type ProfileLayer = (typeof PROFILE_LAYERS)[number];
 
-/** 画像文档:每层一行(核心/投资/创作/状态/私密)。 */
+/** 画像文档:每层一行(核心/状态/投资/关系)。 */
 export const profileDoc = pgTable("profile_doc", {
   id: serial("id").primaryKey(),
   layer: text("layer").notNull().unique(),

@@ -83,7 +83,7 @@ export function parseUpdateBlock(raw: string): ParseResult {
   if (!(PROFILE_LAYERS as readonly string[]).includes(layer)) {
     return {
       ok: false,
-      error: `layer 非法:"${layer}",允许值:core / milestones / investing / creative / status / private / public`,
+      error: `layer 非法:"${layer}",允许值:core / status / investing / relationship`,
     };
   }
 

@@ -49,10 +49,10 @@ npm run dev
 - 工作:快速录入、状态流转、轻分类筛选、置顶、组内/跨栏拖拽、行内编辑、软删除
 - 持仓:按 A 股/美股/其他分组维护人民币金额,占总资产比例自动计算;名称、买入逻辑、观察池和结构图可用
 - 投资复盘:由 MCP 提交固定四段月度审计与全量金额持仓,用户批准后同步保存总结和当月快照,并自动生成 `audit-sync` 的 status 层投资纪律联动提案
-- 画像:七层 Markdown（含人生重要节点与公开层）、完整版/通用版/自定义分发、一键复制、版本历史、回滚；status 超过 35 天未更新时首页眉标提示
-- Proposal:REST/write token、粘贴更新块、MCP 三条写入通道,全部需用户 diff 确认
+- 画像:四层 Markdown(core/status/investing/relationship)、完整版/通用版/自定义分发、一键复制、版本历史、回滚；status 含内部状态与公开状态，公开状态同步网站 /now；超过 35 天未更新时首页眉标提示
+- Proposal:REST/write token、粘贴更新块、MCP 写入通道,全部需用户 diff 确认
 - Token:read/write token 生成、吊销、最后使用时间
-- MCP:`get_profile` / `search_entries` / `propose_profile_update` / `propose_monthly_investment_update`（提交审计后应立刻更新 status）
+- MCP:`get_profile` / `list_profile_layers` / `search_entries` / `propose_profile_update` / `propose_profile_patch` / `propose_monthly_investment_update`（提交审计后应立刻更新 status）
 - 导入导出:`/api/import` JSON 导入,`/api/export` 全量 Markdown ZIP
 - 备份:Vercel Cron 每日全量 Markdown 快照到 GitHub 私库;未配置视为未启用,启用后失败或 48 小时未成功才告警
 - Demo seed:`npm run seed:demo` 导入 `console-seed-data.md` 对应的工作事项、持仓、画像层和一条 pending proposal
@@ -138,7 +138,8 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 
 连接成功后 Claude 可使用这些工具:
 
-- `get_profile`: 读取画像层,可用 `layers` 指定 `core/milestones/investing/creative/status/private/public`。
+- `get_profile`: 读取画像层；不传 `layers` 返回全部四层(`core/status/investing/relationship`)；可逗号指定子集。
+- `list_profile_layers`: 列出四层的简介与最后更新时间。
 - `search_entries`: 搜索工作事项、持仓和通用条目。
 - `get_topic_batch`: 读取 topic-radar 最新选题候选（可选 `account=lengjiao|carbon`）；与画像提案无关。
 - `propose_profile_patch`: 按 `##` 二级标题和条目标题精确定位，支持 `### 标题`、独立 `**标题**`、`**标题**: 正文` 三种条目格式，局部新增、修改或删除画像条目。同一调用方连续修改同一层时会累积到同一个 pending proposal，不会生成互相覆盖的多份候选稿。

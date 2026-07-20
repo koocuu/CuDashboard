@@ -5,7 +5,7 @@ import { buildContextPackage, resolveLayers } from "@/lib/context-builder";
 import { verifyOAuthAccessToken } from "@/lib/oauth";
 import { searchAll } from "@/lib/queries/search";
 import { createProposal } from "@/lib/proposals";
-import { isValidLayer } from "@/lib/queries/profile";
+import { getAllLayers, isValidLayer } from "@/lib/queries/profile";
 import { getLatestTopicBatch } from "@/lib/queries/topics";
 import { formatTopicBatchMarkdown } from "@/lib/topics-display";
 import {
@@ -17,7 +17,14 @@ import {
 import { listHoldings } from "@/lib/queries/invest";
 import { monthlyReviewDataSchema } from "@/lib/invest-review-template";
 import { createProfilePatchProposal } from "@/lib/profile-patch-proposals";
-import type { ProfileLayer } from "@/lib/db/schema";
+import { LAYER_META, LAYER_ORDER } from "@/lib/profile-meta";
+import { PROFILE_LAYERS, type ProfileLayer } from "@/lib/db/schema";
+import { formatDate } from "@/lib/utils";
+
+const PROFILE_LAYER_ENUM = PROFILE_LAYERS as unknown as [
+  ProfileLayer,
+  ...ProfileLayer[],
+];
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,22 +43,46 @@ const mcpHandler = createMcpHandler(
       {
         title: "Get Profile",
         description:
-          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/milestones/investing/creative/status/private/public);不传则返回该 token 权限内的全部层,包括 private 层(默认不含 public)。用于让 AI 在新对话中理解用户背景、重要人生节点、偏好、当前状态与附录信息。",
+          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/status/investing/relationship);不传则返回该 token 权限内的全部四层。MCP 内部不做默认收窄,分级只发生在是否连接此 MCP。status 含「内部状态」与「公开状态」两节。",
         inputSchema: {
           layers: z
             .string()
             .optional()
             .describe(
-              "可选。逗号分隔的画像层名,如 core,milestones,status 或 core,milestones,investing,creative,status。需要网站公开近况时显式加入 public。",
+              "可选。逗号分隔的画像层名,如 core,status 或 core,status,investing,relationship。",
             ),
         },
       },
       async ({ layers }) => {
         const resolvedLayers = layers
           ? resolveLayers(null, layers)
-          : resolveLayers("full", null);
+          : [...LAYER_ORDER];
         const markdown = await buildContextPackage(resolvedLayers);
         return textResult(markdown);
+      },
+    );
+
+    server.registerTool(
+      "list_profile_layers",
+      {
+        title: "List Profile Layers",
+        description:
+          "列出当前画像的四层结构：core、status、investing、relationship。返回每层展示名、简介、最后更新时间与字数，便于先选型再 get_profile / propose。",
+        inputSchema: {},
+      },
+      async () => {
+        const docs = await getAllLayers();
+        const byLayer = new Map(docs.map((doc) => [doc.layer, doc]));
+        const lines = LAYER_ORDER.map((layer) => {
+          const meta = LAYER_META[layer];
+          const doc = byLayer.get(layer);
+          const updated =
+            doc && doc.id > 0 ? formatDate(doc.updatedAt) : "从未写入";
+          const chars = doc?.contentMd?.length ?? 0;
+          const version = doc && doc.id > 0 ? doc.version : 0;
+          return `- ${layer}（${meta.label}）v${version} · ${chars} 字 · 更新 ${updated}\n  ${meta.desc}`;
+        });
+        return textResult(`画像层（共 ${LAYER_ORDER.length} 层）:\n${lines.join("\n")}`);
       },
     );
 
@@ -170,20 +201,12 @@ const mcpHandler = createMcpHandler(
           "对画像某一层内的单个条目提交局部增删改提案，适合连续修改一个小点，不需要重发整层 Markdown。用 section 精确定位 ## 二级标题，用 anchor 精确匹配 ### 条目标题、独立 **条目标题** 或 **条目标题**: 正文。第一次调用创建 pending proposal；同一调用方继续修改同一层时，会基于该 pending 候选正文累积修改并更新原提案，始终只保留一个提案 ID。不会直接写入画像，仍需用户在 dashboard 查看 diff 并批准。若该层已有其他来源提案或定位存在歧义，会明确报错而不会猜测。需要 write 权限。",
         inputSchema: {
           layer: z
-            .enum([
-              "core",
-              "milestones",
-              "investing",
-              "creative",
-              "status",
-              "private",
-              "public",
-            ])
-            .describe("目标画像层:core/milestones/investing/creative/status/private/public。"),
+            .enum(PROFILE_LAYER_ENUM)
+            .describe("目标画像层:core/status/investing/relationship。"),
           section: z
             .string()
             .min(1)
-            .describe('二级标题的纯文本，如 "情感复盘记录"，按完整文本精确匹配。'),
+            .describe('二级标题的纯文本，如 "情感复盘记录" 或 "内部状态"，按完整文本精确匹配。'),
           operation: z
             .enum(["add", "update", "delete"])
             .describe("局部操作:add 新增、update 修改、delete 删除。"),
@@ -252,17 +275,9 @@ const mcpHandler = createMcpHandler(
           "提交画像修改的待确认提案。此工具不会直接覆盖画像,只会在 dashboard 创建 pending proposal,用户需要查看 diff 并批准后才会生效。参数 layer 是目标画像层,content_md 是该层新的完整 Markdown 正文,summary 是这次修改摘要。需要 write token。",
         inputSchema: {
           layer: z
-            .enum([
-              "core",
-              "milestones",
-              "investing",
-              "creative",
-              "status",
-              "private",
-              "public",
-            ])
+            .enum(PROFILE_LAYER_ENUM)
             .describe(
-              "目标画像层:core/milestones/investing/creative/status/private/public。public 层写给网站 /now,批准后会同步到 koocuu.com。",
+              "目标画像层:core/status/investing/relationship。网站 /now 内容写在 status 层的「公开状态」节，批准 status 后同步。",
             ),
           content_md: z
             .string()

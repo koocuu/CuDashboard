@@ -11,7 +11,9 @@ export const PROFILE_UPDATE_PROTOCOL = `## 画像更新协议
 
 必须严格按此模板输出,包裹符与字段名一字不差,不要改用其他格式、不要加粗字段名、不要自拟标题。
 
-layer 合法取值: core/milestones/investing/creative/status/private/public
+layer 合法取值: core/status/investing/relationship
+
+status 层须含二级标题「内部状态」与「公开状态」；网站 /now 只同步「公开状态」节。
 
 可整体复制的字面模板:
 

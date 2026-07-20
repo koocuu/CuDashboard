@@ -1,5 +1,5 @@
 /**
- * Sync the public profile layer to the personal website repo.
+ * Sync status 层「公开状态」节 to the personal website repo (/now).
  * Uses a dedicated GitHub token/repo (not the daily backup credentials).
  * Writes via Contents API (single-file PUT) — friendlier for fine-grained PATs
  * than the Git Data /git/trees flow.
@@ -22,8 +22,8 @@ export type WebsiteSyncResult =
   | { ok: false; error: string };
 
 /**
- * Commit public-layer markdown to the website repo.
- * Content should be the full file (frontmatter + ## sections).
+ * Commit「公开状态」节 markdown to the website repo.
+ * Content should be the full /now file body (frontmatter + ## sections).
  */
 export async function syncPublicLayerToWebsite(
   contentMd: string,
@@ -50,7 +50,7 @@ export async function syncPublicLayerToWebsite(
       branch,
       path,
       content,
-      message: "content: sync /now from Console public layer",
+      message: "content: sync /now from Console status 公开状态",
     });
     return { ok: true, path };
   } catch (error) {
