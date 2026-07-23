@@ -58,16 +58,25 @@ export function sanitizeMcpJsonRpcPayload(payload: unknown): unknown {
   return { ...msg, result };
 }
 
+/**
+ * 逐行清洗 SSE：只重写 `data:` 行的 JSON，其余行（尤其是事件终止的空行）
+ * 原样保留。绝不能用跨行正则，否则会吃掉 `\n\n` 事件终止符，导致严格 SSE
+ * 客户端（Claude）解析失败、连接报错。
+ */
 function sanitizeSseBody(body: string): string {
-  return body.replace(/^data:\s*(\{.*\})\s*$/gm, (_full, json: string) => {
-    try {
-      const parsed = JSON.parse(json);
-      const sanitized = sanitizeMcpJsonRpcPayload(parsed);
-      return `data: ${JSON.stringify(sanitized)}`;
-    } catch {
-      return _full;
-    }
-  });
+  return body
+    .split("\n")
+    .map((line) => {
+      const match = line.match(/^data:\s*(\{.*\})\s*(\r?)$/);
+      if (!match) return line;
+      try {
+        const sanitized = sanitizeMcpJsonRpcPayload(JSON.parse(match[1]));
+        return `data: ${JSON.stringify(sanitized)}${match[2]}`;
+      } catch {
+        return line;
+      }
+    })
+    .join("\n");
 }
 
 /**
