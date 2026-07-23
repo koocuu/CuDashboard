@@ -1,4 +1,9 @@
-export const PROFILE_PATCH_OPERATIONS = ["add", "update", "delete"] as const;
+export const PROFILE_PATCH_OPERATIONS = [
+  "add",
+  "update",
+  "delete",
+  "replace_section",
+] as const;
 export type ProfilePatchOperation = (typeof PROFILE_PATCH_OPERATIONS)[number];
 
 interface MarkdownLine {
@@ -133,7 +138,7 @@ function requireSingleMatch<T>(
 }
 
 function validateNewEntry(raw: string | undefined, operation: ProfilePatchOperation) {
-  if (operation === "delete") return null;
+  if (operation === "delete" || operation === "replace_section") return null;
   const content = raw?.replace(/\r\n/g, "\n").trim();
   if (!content) {
     throw new Error(`${operation === "add" ? "新增" : "修改"}条目时 new_content_md 不能为空`);
@@ -160,6 +165,58 @@ function validateNewEntry(raw: string | undefined, operation: ProfilePatchOperat
   return { content, title: firstEntry.title };
 }
 
+/** replace_section：完整 section Markdown，必须以目标 ## 标题开头，且只能有一个二级标题。 */
+function validateReplaceSection(raw: string | undefined, sectionTitle: string) {
+  const content = raw?.replace(/\r\n/g, "\n").trim();
+  if (!content) {
+    throw new Error("replace_section 时 new_content_md 不能为空");
+  }
+
+  const scan = scanMarkdown(content);
+  const levelTwo = scan.headings.filter((heading) => heading.level === 2);
+  const firstContentOffset = indexedLines(content).find(
+    (line) => line.text.trim().length > 0,
+  )?.start;
+
+  if (
+    levelTwo.length === 0 ||
+    levelTwo[0].line.start !== firstContentOffset
+  ) {
+    throw new Error("new_content_md 必须以目标 ## 二级标题开头");
+  }
+  if (levelTwo[0].title !== sectionTitle) {
+    throw new Error(
+      `new_content_md 标题「${levelTwo[0].title}」与 section「${sectionTitle}」不一致`,
+    );
+  }
+  if (levelTwo.length > 1) {
+    throw new Error("new_content_md 只能包含一个二级标题（即该 section 本身）");
+  }
+  if (scan.headings.some((heading) => heading.level === 1)) {
+    throw new Error("new_content_md 不能包含一级标题");
+  }
+
+  return content;
+}
+
+function appendBlock(text: string, block: string) {
+  const trimmed = text.replace(/\s+$/, "");
+  if (!trimmed) return `${block}\n`;
+  return `${trimmed}\n\n${block}\n`;
+}
+
+function replaceRange(text: string, start: number, end: number, block: string) {
+  const before = text.slice(0, start).replace(/\s+$/, "");
+  const after = text.slice(end).replace(/^\s+/, "");
+  if (!before) {
+    return after ? `${block}\n\n${after}` : `${block}\n`;
+  }
+  if (!after) {
+    return `${before}\n\n${block}\n`;
+  }
+  return `${before}\n\n${block}\n\n${after}`;
+}
+
 function contentEndBeforeWhitespace(text: string, start: number, end: number) {
   const segment = text.slice(start, end);
   const trailing = segment.match(/\s+$/)?.[0] ?? "";
@@ -182,6 +239,37 @@ export function applyProfilePatch(input: ProfilePatchInput): ProfilePatchResult 
   const text = input.contentMd.replace(/\r\n/g, "\n");
   const sectionTitle = unwrapTitle(input.section);
   if (!sectionTitle) throw new Error("section 不能为空");
+
+  if (input.operation === "replace_section") {
+    const replacement = validateReplaceSection(input.newContentMd, sectionTitle);
+    const scan = scanMarkdown(text);
+    const matches = scan.headings.filter(
+      (heading) => heading.level === 2 && heading.title === sectionTitle,
+    );
+    if (matches.length > 1) {
+      throw new Error(`二级标题存在重复，无法确定目标：${sectionTitle}`);
+    }
+    if (matches.length === 0) {
+      return {
+        contentMd: appendBlock(text, replacement),
+        section: sectionTitle,
+        entryTitle: sectionTitle,
+      };
+    }
+
+    const section = matches[0];
+    const sectionEnd =
+      scan.headings.find(
+        (heading) =>
+          heading.line.start > section.line.start && heading.level <= 2,
+      )?.line.start ?? text.length;
+
+    return {
+      contentMd: replaceRange(text, section.line.start, sectionEnd, replacement),
+      section: sectionTitle,
+      entryTitle: sectionTitle,
+    };
+  }
 
   const scan = scanMarkdown(text);
   const section = requireSingleMatch(

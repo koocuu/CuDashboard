@@ -198,7 +198,7 @@ const mcpHandler = createMcpHandler(
       {
         title: "Propose Profile Patch",
         description:
-          "对画像某一层内的单个条目提交局部增删改提案，适合连续修改一个小点，不需要重发整层 Markdown。用 section 精确定位 ## 二级标题，用 anchor 精确匹配 ### 条目标题、独立 **条目标题** 或 **条目标题**: 正文。第一次调用创建 pending proposal；同一调用方继续修改同一层时，会基于该 pending 候选正文累积修改并更新原提案，始终只保留一个提案 ID。不会直接写入画像，仍需用户在 dashboard 查看 diff 并批准。若该层已有其他来源提案或定位存在歧义，会明确报错而不会猜测。需要 write 权限。",
+          "对画像某一层做局部提案：可改 section 内单条(add/update/delete)，或整节替换(replace_section)。不需要重发整层 Markdown。用 section 精确定位 ## 二级标题；条目操作用 anchor 匹配 ### / **标题** / **标题**: 正文。replace_section 的 new_content_md 须含完整 section（以目标 ## 标题开头）；若 section 不存在则追加到层末。第一次调用创建 pending proposal；同一调用方继续修改同一层时累积到同一提案。不会直接写入画像。需要 write 权限。",
         inputSchema: {
           layer: z
             .enum(PROFILE_LAYER_ENUM)
@@ -208,19 +208,21 @@ const mcpHandler = createMcpHandler(
             .min(1)
             .describe('二级标题的纯文本，如 "情感复盘记录" 或 "内部状态"，按完整文本精确匹配。'),
           operation: z
-            .enum(["add", "update", "delete"])
-            .describe("局部操作:add 新增、update 修改、delete 删除。"),
+            .enum(["add", "update", "delete", "replace_section"])
+            .describe(
+              "add/update/delete=section 内单条；replace_section=整节替换（section 不存在则追加）。",
+            ),
           anchor: z
             .string()
             .default("")
             .describe(
-              "条目标题的纯文本。update/delete 时必填；add 时表示插入到该条目之后，留空则插入 section 末尾。",
+              "条目标题的纯文本。update/delete 时必填；add 时表示插入到该条目之后，留空则插入 section 末尾；replace_section 忽略。",
             ),
           new_content_md: z
             .string()
             .default("")
             .describe(
-              "add/update 时必填的单条完整 Markdown，必须以 ### 条目标题、独立 **条目标题** 或 **条目标题**: 正文开头；delete 时留空。",
+              "add/update：单条完整 Markdown（###/** 标题开头）。replace_section：完整 section Markdown（必须以目标 ## 标题开头）。delete 时留空。",
             ),
           summary: z.string().min(1).describe("本次局部修改摘要，用于提案列表。"),
         },
@@ -255,8 +257,12 @@ const mcpHandler = createMcpHandler(
             sourceName,
           });
           const action = result.continued ? "已合并到" : "已创建";
+          const detail =
+            operation === "replace_section"
+              ? `整节替换「${result.patch.section}」`
+              : `在「${result.patch.section}」中${operation === "add" ? "新增" : operation === "update" ? "修改" : "删除"}「${result.patch.entryTitle}」`;
           return textResult(
-            `${action}待确认画像提案 #${result.proposal.id}：在「${result.patch.section}」中${operation === "add" ? "新增" : operation === "update" ? "修改" : "删除"}「${result.patch.entryTitle}」。请用户在 dashboard 查看累计 diff 并批准后生效。`,
+            `${action}待确认画像提案 #${result.proposal.id}：${detail}。请用户在 dashboard 查看累计 diff 并批准后生效。`,
           );
         } catch (error) {
           return textResult(

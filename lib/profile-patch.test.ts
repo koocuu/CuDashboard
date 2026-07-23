@@ -221,3 +221,57 @@ test("requires exactly one complete entry for add and update", () => {
     /必须且只能包含一个可定位条目/,
   );
 });
+
+test("replace_section replaces the whole section and leaves others intact", () => {
+  const result = applyProfilePatch({
+    contentMd: PROFILE,
+    section: "情感复盘记录",
+    operation: "replace_section",
+    newContentMd:
+      "## 情感复盘记录\n\n**全新条目 · 2026年7月**\n\n- 事实：整节已换",
+  });
+
+  assert.match(result.contentMd, /## 情感复盘记录\n\n\*\*全新条目 · 2026年7月\*\*/);
+  assert.doesNotMatch(result.contentMd, /甲 · 2026年1月|乙 · 2026年2月/);
+  assert.match(result.contentMd, /## 其他敏感约定\n\n不要改这里。/);
+  assert.equal(result.entryTitle, "情感复盘记录");
+});
+
+test("replace_section appends when the section does not exist", () => {
+  const result = applyProfilePatch({
+    contentMd: PROFILE,
+    section: "风格库",
+    operation: "replace_section",
+    newContentMd: "## 风格库\n\n- 短句优先\n- 少用形容词",
+  });
+
+  assert.ok(
+    result.contentMd.indexOf("## 其他敏感约定") <
+      result.contentMd.indexOf("## 风格库"),
+  );
+  assert.match(result.contentMd, /## 风格库\n\n- 短句优先/);
+});
+
+test("replace_section rejects mismatched or multi h2 payloads", () => {
+  assert.throws(
+    () =>
+      applyProfilePatch({
+        contentMd: PROFILE,
+        section: "情感复盘记录",
+        operation: "replace_section",
+        newContentMd: "## 别的标题\n\n正文",
+      }),
+    /与 section「情感复盘记录」不一致/,
+  );
+
+  assert.throws(
+    () =>
+      applyProfilePatch({
+        contentMd: PROFILE,
+        section: "情感复盘记录",
+        operation: "replace_section",
+        newContentMd: "## 情感复盘记录\n\n正文\n\n## 另一个\n\n更多",
+      }),
+    /只能包含一个二级标题/,
+  );
+});
