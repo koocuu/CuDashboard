@@ -115,6 +115,15 @@ export function formatTopicBatchMarkdown(input: {
       parts.push(`- 链接: ${item.url}`);
       if (item.angle) parts.push(`- 切入点: ${item.angle}`);
       if (item.rationale) parts.push(`- 理由: ${item.rationale}`);
+      if (item.storyline && item.storyline !== "none") {
+        const irrev =
+          item.irreversible === true
+            ? "不可逆 ✓"
+            : item.irreversible === false
+              ? "稳定循环 ✗（已降权）"
+              : "—";
+        parts.push(`- 线索: ${item.storyline} · ${irrev}`);
+      }
       if (item.caveat?.trim()) parts.push(`- 核实: ${item.caveat}`);
       parts.push("");
     });

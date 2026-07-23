@@ -100,7 +100,22 @@ export default async function TopicsPage() {
                             {typeof item.heat === "number" && (
                               <span>热度 {item.heat}/10</span>
                             )}
+                            {item.storyline && item.storyline !== "none" && (
+                              <span>
+                                线索{item.storyline}
+                                {item.irreversible === true
+                                  ? " · 不可逆"
+                                  : item.irreversible === false
+                                    ? " · 稳定循环"
+                                    : ""}
+                              </span>
+                            )}
                           </div>
+                        )}
+                        {item.irreversible === false && item.storyline === "B" && (
+                          <p className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs leading-5 text-amber-700 dark:text-amber-400">
+                            ⚠ 稳定循环类设定：写得出「还不错」，难写出「震撼」；已降权，慎选。
+                          </p>
                         )}
                         {item.angle && (
                           <p className="mt-2 text-sm leading-6">

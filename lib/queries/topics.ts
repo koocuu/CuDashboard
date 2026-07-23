@@ -20,6 +20,10 @@ export type TopicCandidate = {
   angle_authenticity?: number
   /** 热度 0-10。 */
   heat?: number
+  /** 碳基线索：A / B / none。 */
+  storyline?: "A" | "B" | "none"
+  /** 不可逆性（仅线索 B）：true=单向临界；false=稳定循环。 */
+  irreversible?: boolean | null
   /** 安全/漏洞类核实提醒（⚠ …）；无则空。 */
   caveat?: string
   angle?: string
