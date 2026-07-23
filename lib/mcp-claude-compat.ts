@@ -70,6 +70,25 @@ function sanitizeSseBody(body: string): string {
   });
 }
 
+/**
+ * 逐跳头（hop-by-hop）与由平台重算的头必须剔除。
+ * 因为我们把上游 SSE 流 buffer 成定长字符串后重发，若保留 transfer-encoding:
+ * chunked，严格 HTTP 客户端（如 Claude）会按 chunk 分帧解析定长 body 而失败。
+ */
+const STRIP_HEADERS = [
+  "content-length",
+  "content-encoding",
+  "transfer-encoding",
+  "connection",
+  "keep-alive",
+];
+
+function cleanHeaders(source: Headers): Headers {
+  const headers = new Headers(source);
+  for (const name of STRIP_HEADERS) headers.delete(name);
+  return headers;
+}
+
 /** 包装 MCP handler，清洗 Claude 不兼容字段。 */
 export function withClaudeMcpCompat(
   handler: (req: Request) => Response | Promise<Response>,
@@ -83,14 +102,12 @@ export function withClaudeMcpCompat(
     const res = await handler(req);
     const contentType = res.headers.get("content-type") ?? "";
 
-    // 无 body 的 202（如 notifications/initialized）必须原样重建，不能回传已消费的 Response
+    // 无 body 的 202/204（如 notifications/initialized）：重建空响应
     if (res.status === 204 || res.status === 202) {
-      const headers = new Headers(res.headers);
-      headers.delete("content-length");
       return new Response(null, {
         status: res.status,
         statusText: res.statusText,
-        headers,
+        headers: cleanHeaders(res.headers),
       });
     }
 
@@ -100,18 +117,15 @@ export function withClaudeMcpCompat(
       !contentType.includes("text/event-stream")
     ) {
       const raw = await res.arrayBuffer();
-      const headers = new Headers(res.headers);
-      headers.delete("content-length");
       return new Response(raw, {
         status: res.status,
         statusText: res.statusText,
-        headers,
+        headers: cleanHeaders(res.headers),
       });
     }
 
     const text = await res.text();
-    const headers = new Headers(res.headers);
-    headers.delete("content-length");
+    const headers = cleanHeaders(res.headers);
 
     if (!text) {
       return new Response(null, {

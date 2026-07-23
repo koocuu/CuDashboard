@@ -54,7 +54,14 @@ async function main() {
   const wrapped = withClaudeMcpCompat(async () => {
     return new Response(
       `event: message\ndata: ${JSON.stringify(toolsRaw)}\n\n`,
-      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "text/event-stream",
+          // 上游流式响应的逐跳头，重发定长 body 时必须剔除
+          "Transfer-Encoding": "chunked",
+        },
+      },
     );
   });
 
@@ -66,6 +73,9 @@ async function main() {
   assert.doesNotMatch(body, /"title"/);
   assert.doesNotMatch(body, /"execution"/);
   assert.doesNotMatch(body, /\$schema/);
+  // 关键：重发时不得保留 chunked 头，否则严格客户端按分帧解析定长 body 失败
+  assert.equal(res.headers.get("transfer-encoding"), null);
+  assert.equal(res.headers.get("content-type"), "text/event-stream");
 
   const accepted = withClaudeMcpCompat(
     async () => new Response(null, { status: 202 }),
