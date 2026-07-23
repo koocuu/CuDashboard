@@ -70,10 +70,6 @@ function sanitizeSseBody(body: string): string {
   });
 }
 
-async function readResponseText(res: Response): Promise<string> {
-  return res.text();
-}
-
 /** 包装 MCP handler，清洗 Claude 不兼容字段。 */
 export function withClaudeMcpCompat(
   handler: (req: Request) => Response | Promise<Response>,
@@ -82,16 +78,43 @@ export function withClaudeMcpCompat(
     const res = await handler(req);
     const contentType = res.headers.get("content-type") ?? "";
 
-    // 非 JSON / SSE 原样返回（含 401 等）
+    // 无 body 的 202（如 notifications/initialized）必须原样重建，不能回传已消费的 Response
+    if (res.status === 204 || res.status === 202) {
+      const headers = new Headers(res.headers);
+      headers.delete("content-length");
+      return new Response(null, {
+        status: res.status,
+        statusText: res.statusText,
+        headers,
+      });
+    }
+
+    // 非 JSON / SSE 原样透传（重建 body，避免流被消费后无法再读）
     if (
       !contentType.includes("application/json") &&
       !contentType.includes("text/event-stream")
     ) {
-      return res;
+      const raw = await res.arrayBuffer();
+      const headers = new Headers(res.headers);
+      headers.delete("content-length");
+      return new Response(raw, {
+        status: res.status,
+        statusText: res.statusText,
+        headers,
+      });
     }
 
-    const text = await readResponseText(res);
-    if (!text) return res;
+    const text = await res.text();
+    const headers = new Headers(res.headers);
+    headers.delete("content-length");
+
+    if (!text) {
+      return new Response(null, {
+        status: res.status,
+        statusText: res.statusText,
+        headers,
+      });
+    }
 
     let nextBody: string;
     if (contentType.includes("text/event-stream") || text.startsWith("event:")) {
@@ -100,16 +123,9 @@ export function withClaudeMcpCompat(
       try {
         nextBody = JSON.stringify(sanitizeMcpJsonRpcPayload(JSON.parse(text)));
       } catch {
-        return new Response(text, {
-          status: res.status,
-          statusText: res.statusText,
-          headers: res.headers,
-        });
+        nextBody = text;
       }
     }
-
-    const headers = new Headers(res.headers);
-    headers.delete("content-length");
 
     return new Response(nextBody, {
       status: res.status,

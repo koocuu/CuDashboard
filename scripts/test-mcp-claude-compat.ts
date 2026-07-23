@@ -67,6 +67,15 @@ async function main() {
   assert.doesNotMatch(body, /"execution"/);
   assert.doesNotMatch(body, /\$schema/);
 
+  const accepted = withClaudeMcpCompat(
+    async () => new Response(null, { status: 202 }),
+  );
+  const ack = await accepted(
+    new Request("https://example.com/api/mcp", { method: "POST" }),
+  );
+  assert.equal(ack.status, 202);
+  assert.equal(await ack.text(), "");
+
   console.log("mcp-claude-compat ok");
 }
 
