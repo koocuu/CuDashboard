@@ -75,6 +75,11 @@ export function withClaudeMcpCompat(
   handler: (req: Request) => Response | Promise<Response>,
 ): (req: Request) => Promise<Response> {
   return async (req: Request) => {
+    // HEAD 必须由路由层单独处理；此处兜底避免误入后挂起
+    if (req.method === "HEAD") {
+      return new Response(null, { status: 405 });
+    }
+
     const res = await handler(req);
     const contentType = res.headers.get("content-type") ?? "";
 

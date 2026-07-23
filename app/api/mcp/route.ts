@@ -2,7 +2,7 @@ import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import { verifyBearer } from "@/lib/auth/tokens";
 import { buildContextPackage, resolveLayers } from "@/lib/context-builder";
-import { verifyOAuthAccessToken } from "@/lib/oauth";
+import { publicOrigin, verifyOAuthAccessToken } from "@/lib/oauth";
 import { searchAll } from "@/lib/queries/search";
 import { createProposal } from "@/lib/proposals";
 import { getAllLayers, isValidLayer } from "@/lib/queries/profile";
@@ -377,6 +377,30 @@ const authenticatedHandler = withMcpAuth(
 
 // Claude 会因 SDK 1.26+ 的 title/execution/listChanged 等字段静默丢掉全部工具
 const handler = withClaudeMcpCompat(authenticatedHandler);
+
+/**
+ * Claude OAuth 成功后会 HEAD 探测 /api/mcp。
+ * mcp-handler 只处理 GET/POST/DELETE，HEAD 会落入空分支导致响应永不结束。
+ */
+export async function HEAD(req: Request) {
+  const authHeader = req.headers.get("authorization");
+  const api = await verifyBearer(authHeader);
+  if (api) return new Response(null, { status: 200 });
+
+  const bearer = authHeader?.replace(/^Bearer\s+/i, "").trim();
+  if (bearer) {
+    const oauth = await verifyOAuthAccessToken(bearer);
+    if (oauth) return new Response(null, { status: 200 });
+  }
+
+  const origin = publicOrigin(req);
+  return new Response(null, {
+    status: 401,
+    headers: {
+      "WWW-Authenticate": `Bearer error="invalid_token", error_description="No authorization provided", resource_metadata="${origin}/.well-known/oauth-protected-resource/api/mcp"`,
+    },
+  });
+}
 
 export {
   handler as DELETE,
