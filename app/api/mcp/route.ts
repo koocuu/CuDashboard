@@ -20,6 +20,7 @@ import { createProfilePatchProposal } from "@/lib/profile-patch-proposals";
 import { LAYER_META, LAYER_ORDER } from "@/lib/profile-meta";
 import { PROFILE_LAYERS, type ProfileLayer } from "@/lib/db/schema";
 import { formatDate } from "@/lib/utils";
+import { withClaudeMcpCompat } from "@/lib/mcp-claude-compat";
 
 const PROFILE_LAYER_ENUM = PROFILE_LAYERS as unknown as [
   ProfileLayer,
@@ -367,11 +368,18 @@ const authenticatedHandler = withMcpAuth(
       },
     };
   },
-  { required: true },
+  {
+    required: true,
+    // RFC 9728：指向 path-based PRM，避免新客户端只探测 /api/mcp 后缀时拿到 404
+    resourceMetadataPath: "/.well-known/oauth-protected-resource/api/mcp",
+  },
 );
 
+// Claude 会因 SDK 1.26+ 的 title/execution/listChanged 等字段静默丢掉全部工具
+const handler = withClaudeMcpCompat(authenticatedHandler);
+
 export {
-  authenticatedHandler as DELETE,
-  authenticatedHandler as GET,
-  authenticatedHandler as POST,
+  handler as DELETE,
+  handler as GET,
+  handler as POST,
 };
