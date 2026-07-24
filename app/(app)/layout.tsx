@@ -6,6 +6,9 @@ import { pendingProposalCount } from "@/lib/queries/profile";
 import { workStats } from "@/lib/queries/work";
 import { formatDate } from "@/lib/utils";
 
+/** 提案角标等随 live-revision → router.refresh 更新，禁止 layout 静态缓存。 */
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({
   children,
 }: {
