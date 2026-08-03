@@ -142,7 +142,7 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 - `list_profile_layers`: 列出四层的简介与最后更新时间。
 - `search_entries`: 搜索工作事项、持仓和通用条目。
 - `get_topic_batch`: 读取 topic-radar 最新选题候选（可选 `account=lengjiao|carbon`）；与画像提案无关。
-- `propose_profile_patch`: 局部提案。`add/update/delete` 改 section 内单条；`replace_section` 整节替换（`new_content_md` 须以目标 `##` 开头；section 不存在则追加到层末）。同一调用方连续改同一层会累积到同一个 pending proposal。
-- `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。
+- `propose_profile_patch`: 局部提案。`add/update/delete` 改 section 内单条；`replace_section` 整节替换（`new_content_md` 须以目标 `##` 开头；section 不存在则追加到层末）。同一调用方连续改同一层会累积到同一个 pending proposal。工具说明含主动识别提示：对话中出现稳定事实/原则/偏好变化时应主动提议，不必等用户要求「更新画像」。
+- `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。同样适用主动识别原则（整层过期或稳定变化时主动提议重写）。
 - `propose_monthly_investment_update`: 提交“全量人民币金额持仓 + 固定四段月度审计”的待确认提案。持仓必须包含 `CASH` 余额项；审计字段固定为 `conclusion`、`triggers_and_rules`、`actions`、`next_month_checks`。用户在投资页批准后，持仓与审计快照同节点生效，并自动生成 `audit-sync` 的 status 联动提案。提交后应立即再调 `propose_profile_update` 更新 status 层。
 - HTTP:`POST /api/profile/proposals`（Bearer write token）用于画像提案；`POST /api/topic-batches` 用于 topic-radar 写入首页「今日选题」（不走提案）。

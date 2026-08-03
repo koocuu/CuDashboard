@@ -199,7 +199,7 @@ const mcpHandler = createMcpHandler(
       {
         title: "Propose Profile Patch",
         description:
-          "对画像某一层做局部提案：可改 section 内单条(add/update/delete)，或整节替换(replace_section)。不需要重发整层 Markdown。用 section 精确定位 ## 二级标题；条目操作用 anchor 匹配 ### / **标题** / **标题**: 正文。replace_section 的 new_content_md 须含完整 section（以目标 ## 标题开头）；若 section 不存在则追加到层末。第一次调用创建 pending proposal；同一调用方继续修改同一层时累积到同一提案。不会直接写入画像。需要 write 权限。",
+          "对画像某一层做局部提案：可改 section 内单条(add/update/delete)，或整节替换(replace_section)。不需要重发整层 Markdown。用 section 精确定位 ## 二级标题；条目操作用 anchor 匹配 ### / **标题** / **标题**: 正文。replace_section 的 new_content_md 须含完整 section（以目标 ## 标题开头）；若 section 不存在则追加到层末。第一次调用创建 pending proposal；同一调用方继续修改同一层时累积到同一提案。不会直接写入画像。需要 write 权限。主动识别提示:当对话中出现值得长期记住的稳定事实、原则性判断、或明确的偏好/状态变化时(而非临时性话题或一次性信息),应主动调用本工具提议记录,不必等待用户明确要求'更新画像'。判断标准:这条信息如果三个月后被问起,用户是否会希望 AI 已经知道——如果是,值得提议;如果只是当下这句话的临时上下文,不必提议。提议后仍需用户在 dashboard 批准才生效,不必因'可能不重要'而犹豫是否提议,人工审核会做最终把关。",
         inputSchema: {
           layer: z
             .enum(PROFILE_LAYER_ENUM)
@@ -279,7 +279,7 @@ const mcpHandler = createMcpHandler(
       {
         title: "Propose Profile Update",
         description:
-          "提交画像修改的待确认提案。此工具不会直接覆盖画像,只会在 dashboard 创建 pending proposal,用户需要查看 diff 并批准后才会生效。参数 layer 是目标画像层,content_md 是该层新的完整 Markdown 正文,summary 是这次修改摘要。需要 write token。",
+          "提交画像修改的待确认提案。此工具不会直接覆盖画像,只会在 dashboard 创建 pending proposal,用户需要查看 diff 并批准后才会生效。参数 layer 是目标画像层,content_md 是该层新的完整 Markdown 正文,summary 是这次修改摘要。需要 write token。同样适用主动识别原则(见 propose_profile_patch 说明):大改一整层时,若对话中发现该层内容已过期或有稳定变化,应主动提议重写,不必等待用户要求。",
         inputSchema: {
           layer: z
             .enum(PROFILE_LAYER_ENUM)
