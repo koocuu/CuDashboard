@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { softDeleteProject, updateProject } from "@/lib/queries/projects";
-import {
-  isProjectArea,
-  isProjectStatus,
-  slugifyProject,
-} from "@/lib/project-meta";
+import { isProjectArea, slugifyProject } from "@/lib/project-meta";
 
 export const runtime = "nodejs";
 
@@ -33,12 +29,6 @@ export async function PATCH(
     const slug = slugifyProject(body.slug);
     if (!slug) return NextResponse.json({ error: "slug 不能为空" }, { status: 400 });
     patch.slug = slug;
-  }
-  if (body.status !== undefined) {
-    if (typeof body.status !== "string" || !isProjectStatus(body.status)) {
-      return NextResponse.json({ error: "无效状态" }, { status: 400 });
-    }
-    patch.status = body.status;
   }
   if (body.area !== undefined) {
     if (typeof body.area !== "string" || !isProjectArea(body.area)) {

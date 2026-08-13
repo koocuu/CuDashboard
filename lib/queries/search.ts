@@ -88,7 +88,7 @@ export async function searchAll(q: string, limit = 30): Promise<SearchHit[]> {
       kind: "作品",
       id: row.id,
       title: row.name,
-      snippet: snip([row.status, row.summary].filter(Boolean).join(" · ")),
+      snippet: snip(row.summary),
     });
   }
 

@@ -4,11 +4,7 @@ import {
   listProjects,
   nextProjectSortOrder,
 } from "@/lib/queries/projects";
-import {
-  isProjectArea,
-  isProjectStatus,
-  slugifyProject,
-} from "@/lib/project-meta";
+import { isProjectArea, slugifyProject } from "@/lib/project-meta";
 
 export const runtime = "nodejs";
 
@@ -26,10 +22,6 @@ export async function POST(req: NextRequest) {
 
   const slugRaw = typeof body.slug === "string" ? body.slug.trim() : "";
   const slug = slugifyProject(slugRaw || name);
-  const status =
-    typeof body.status === "string" && isProjectStatus(body.status)
-      ? body.status
-      : "building";
   const area =
     typeof body.area === "string" && isProjectArea(body.area)
       ? body.area
@@ -39,7 +31,6 @@ export async function POST(req: NextRequest) {
     const item = await insertProject({
       name,
       slug,
-      status,
       area,
       summary: typeof body.summary === "string" ? body.summary.trim() : "",
       url: typeof body.url === "string" ? body.url.trim() : "",

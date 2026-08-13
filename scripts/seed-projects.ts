@@ -1,12 +1,11 @@
 import "dotenv/config";
 import { isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { projects, type ProjectArea, type ProjectStatus } from "@/lib/db/schema";
+import { projects, type ProjectArea } from "@/lib/db/schema";
 
 const seed: Array<{
   name: string;
   slug: string;
-  status: ProjectStatus;
   area: ProjectArea;
   summary: string;
   url: string;
@@ -17,7 +16,6 @@ const seed: Array<{
   {
     name: "捋捋",
     slug: "lulu",
-    status: "live",
     area: "personal",
     summary:
       "脑内倾倒与思维整理：把 todo、情绪、纠结倒进输入框，AI 分拣成可交互关系图。",
@@ -29,7 +27,6 @@ const seed: Array<{
   {
     name: "决策助手",
     slug: "decision-assistant",
-    status: "live",
     area: "personal",
     summary: "把一段纠结拆成选项、风险和低后悔行动，事后复盘沉淀决策。",
     url: "https://koocuu.com/zh/projects/decision-assistant/",
@@ -40,7 +37,6 @@ const seed: Array<{
   {
     name: "选本共创",
     slug: "cocreation",
-    status: "live",
     area: "work",
     summary: "内容方上传剧本、承制方挑选的内部共创平台。",
     url: "https://cocreation.iqiyi.com",
@@ -51,7 +47,6 @@ const seed: Array<{
   {
     name: "koocuu.com",
     slug: "koocuu-site",
-    status: "live",
     area: "personal",
     summary: "个人站：项目、关于、公开近况。",
     url: "https://koocuu.com/zh/",
@@ -62,7 +57,6 @@ const seed: Array<{
   {
     name: "Console",
     slug: "console",
-    status: "building",
     area: "personal",
     summary: "个人画像 RAG + 人生状态工作台。给 AI 读，给人确认。",
     url: "https://dashboard.koocuu.com",
@@ -73,7 +67,6 @@ const seed: Array<{
   {
     name: "topic-radar",
     slug: "topic-radar",
-    status: "paused",
     area: "writing",
     summary: "公众号选题雷达。供稿机器，灵感来了再翻，不进每日主场。",
     url: "",

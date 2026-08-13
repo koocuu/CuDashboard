@@ -357,8 +357,9 @@ export const topicBatches = pgTable(
 export type TopicBatch = typeof topicBatches.$inferSelect;
 
 // ============================================================
-// 作品墙：上线/在做的 coding 项目。给人看，也给 AI 读。
+// 作品墙：coding 项目。给人看，也给 AI 读。
 // 与 work_items 分开：作品是对象，事项是季节性待办。
+// status 列保留兼容，界面与 MCP 不再按在做/上线/暂停分组。
 // ============================================================
 
 export const PROJECT_STATUSES = ["building", "live", "paused"] as const;

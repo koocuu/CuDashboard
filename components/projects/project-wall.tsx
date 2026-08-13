@@ -6,13 +6,11 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { Project, ProjectArea, ProjectStatus } from "@/lib/db/schema";
+import type { Project, ProjectArea } from "@/lib/db/schema";
 import {
   PROJECT_AREA_META,
-  PROJECT_STATUS_META,
-  PROJECT_STATUS_ORDER,
   isProjectArea,
-  isProjectStatus,
+  projectTone,
 } from "@/lib/project-meta";
 import { cn } from "@/lib/utils";
 
@@ -22,9 +20,16 @@ export function ProjectWall({ initialItems }: { initialItems: Project[] }) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
   const [adding, setAdding] = useState(false);
+  const [activeId, setActiveId] = useState<number | null>(
+    initialItems[0]?.id ?? null,
+  );
 
   useEffect(() => {
     setItems(initialItems);
+    setActiveId((cur) => {
+      if (cur !== null && initialItems.some((item) => item.id === cur)) return cur;
+      return initialItems[0]?.id ?? null;
+    });
   }, [initialItems]);
 
   function replace(next: Project) {
@@ -32,14 +37,30 @@ export function ProjectWall({ initialItems }: { initialItems: Project[] }) {
   }
 
   function remove(id: number) {
-    setItems((cur) => cur.filter((item) => item.id !== id));
+    setItems((cur) => {
+      const next = cur.filter((item) => item.id !== id);
+      if (activeId === id) setActiveId(next[0]?.id ?? null);
+      return next;
+    });
   }
 
   function add(item: Project) {
     setItems((cur) => [...cur, item]);
     setAdding(false);
+    setActiveId(item.id);
     router.refresh();
   }
+
+  function pick(id: number) {
+    setActiveId(id);
+    document.getElementById(`project-${id}`)?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  }
+
+  const active = items.find((item) => item.id === activeId) ?? items[0] ?? null;
+  const rest = items.filter((item) => item.id !== active?.id);
 
   return (
     <div className="space-y-8">
@@ -47,7 +68,7 @@ export function ProjectWall({ initialItems }: { initialItems: Project[] }) {
         <div>
           <h1 className="text-sm font-normal text-muted-foreground">作品墙</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            上线的和正在做的。给自己看，也给 AI 读。
+            给人看，也给 AI 读。点名字，下面落到那一件。
           </p>
         </div>
         <Button size="sm" onClick={() => setAdding((v) => !v)}>
@@ -56,116 +77,185 @@ export function ProjectWall({ initialItems }: { initialItems: Project[] }) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 border-b pb-4">
-        {PROJECT_STATUS_ORDER.map((status) => {
-          const count = items.filter((item) => item.status === status).length;
-          return (
-            <div key={status}>
-              <p className="font-mono text-2xl leading-none">{count}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {PROJECT_STATUS_META[status].label}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      {adding && (
-        <ProjectEditor
-          onCancel={() => setAdding(false)}
-          onSaved={add}
-        />
+      {items.length > 0 ? (
+        <ProjectIndex items={items} activeId={active?.id ?? null} onPick={pick} />
+      ) : (
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          墙是空的。加一个正在碰的作品。
+        </p>
       )}
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        {PROJECT_STATUS_ORDER.map((status) => {
-          const group = items.filter((item) => item.status === status);
-          return (
-            <section key={status} className="space-y-3">
-              <h2 className="border-b pb-2 text-sm text-muted-foreground">
-                {PROJECT_STATUS_META[status].label}
-                <span className="ml-2 font-mono text-[11px]">
-                  {String(group.length).padStart(2, "0")}
-                </span>
-              </h2>
-              {group.length === 0 ? (
-                <p className="text-xs text-muted-foreground/70">空</p>
-              ) : (
-                <div className="space-y-4">
-                  {group.map((item) => (
-                    <ProjectCard
-                      key={item.id}
-                      item={item}
-                      onPatch={replace}
-                      onDelete={remove}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
-          );
-        })}
-      </div>
+      {adding && (
+        <ProjectEditor onCancel={() => setAdding(false)} onSaved={add} />
+      )}
+
+      {active ? (
+        <ProjectPoster
+          item={active}
+          index={items.findIndex((item) => item.id === active.id)}
+          featured
+          onPatch={replace}
+          onDelete={remove}
+        />
+      ) : null}
+
+      {rest.length > 0 ? (
+        <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-3">
+          {rest.map((item) => (
+            <ProjectPoster
+              key={item.id}
+              item={item}
+              index={items.findIndex((row) => row.id === item.id)}
+              onSelect={() => pick(item.id)}
+              onPatch={replace}
+              onDelete={remove}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function ProjectCard({
+function ProjectIndex({
+  items,
+  activeId,
+  onPick,
+}: {
+  items: Project[];
+  activeId: number | null;
+  onPick: (id: number) => void;
+}) {
+  return (
+    <nav
+      className="flex flex-wrap items-end gap-x-8 gap-y-5 border-b pb-8"
+      aria-label="作品目录"
+    >
+      {items.map((item, index) => {
+        const active = item.id === activeId;
+        const tone = projectTone(index);
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onPick(item.id)}
+            className="group min-w-0 text-left"
+          >
+            <span
+              className="block font-mono text-[11px] tabular-nums"
+              style={{ color: tone }}
+            >
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span
+              className={cn(
+                "mt-1 block text-2xl font-medium tracking-tight md:text-[28px]",
+                active
+                  ? "text-foreground"
+                  : "text-muted-foreground group-hover:text-foreground",
+              )}
+            >
+              {item.name}
+            </span>
+            <span
+              className="mt-2 block h-px w-full"
+              style={{ background: active ? tone : "transparent" }}
+            />
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function ProjectPoster({
   item,
+  index,
+  featured = false,
+  onSelect,
   onPatch,
   onDelete,
 }: {
   item: Project;
+  index: number;
+  featured?: boolean;
+  onSelect?: () => void;
   onPatch: (item: Project) => void;
   onDelete: (id: number) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const status = isProjectStatus(item.status) ? item.status : "building";
   const area = isProjectArea(item.area) ? item.area : "personal";
-  const meta = PROJECT_STATUS_META[status];
+  const tone = projectTone(index);
 
   if (editing) {
     return (
-      <ProjectEditor
-        item={item}
-        onCancel={() => setEditing(false)}
-        onSaved={(next) => {
-          onPatch(next);
-          setEditing(false);
-        }}
-        onDeleted={() => onDelete(item.id)}
-      />
+      <div
+        id={`project-${item.id}`}
+        className={cn("bg-background p-5", featured && "border-y")}
+      >
+        <ProjectEditor
+          item={item}
+          onCancel={() => setEditing(false)}
+          onSaved={(next) => {
+            onPatch(next);
+            setEditing(false);
+          }}
+          onDeleted={() => onDelete(item.id)}
+        />
+      </div>
     );
   }
 
   return (
-    <article className={cn("border-l-2 pl-3", meta.bar)}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 className="text-[15px] font-medium leading-6">{item.name}</h3>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {PROJECT_AREA_META[area].label}
-            {item.skillRef ? ` · ${item.skillRef}` : ""}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
-        >
-          编辑
-        </button>
-      </div>
+    <article
+      id={`project-${item.id}`}
+      className={cn(
+        "relative bg-background",
+        featured ? "border-y py-10 md:py-14" : "cursor-pointer p-6",
+      )}
+      onClick={onSelect}
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute right-4 top-2 select-none font-medium leading-none"
+        style={{
+          color: tone,
+          opacity: featured ? 0.16 : 0.12,
+          fontSize: featured ? "5.5rem" : "3.25rem",
+        }}
+      >
+        {String(index + 1).padStart(2, "0")}
+      </span>
+      <p className="text-[11px] text-muted-foreground">
+        {PROJECT_AREA_META[area].label}
+        {item.skillRef ? ` · ${item.skillRef}` : ""}
+      </p>
+      <h2
+        className={cn(
+          "mt-2 font-medium tracking-tight",
+          featured ? "text-4xl md:text-5xl" : "text-xl",
+        )}
+      >
+        {item.name}
+      </h2>
       {item.summary ? (
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.summary}</p>
+        <p
+          className={cn(
+            "mt-3 max-w-2xl text-sm leading-7 text-muted-foreground",
+            featured && "md:text-[15px]",
+          )}
+        >
+          {item.summary}
+        </p>
       ) : null}
-      <div className="mt-2 flex flex-wrap gap-3 text-xs">
+      <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
         {item.url ? (
           <a
             href={item.url}
             target="_blank"
             rel="noreferrer"
             className="text-primary hover:opacity-80"
+            onClick={(e) => e.stopPropagation()}
           >
             打开 →
           </a>
@@ -176,10 +266,21 @@ function ProjectCard({
             target="_blank"
             rel="noreferrer"
             className="text-muted-foreground hover:text-foreground"
+            onClick={(e) => e.stopPropagation()}
           >
             仓库 →
           </a>
         ) : null}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditing(true);
+          }}
+          className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+        >
+          编辑
+        </button>
       </div>
     </article>
   );
@@ -198,9 +299,6 @@ function ProjectEditor({
 }) {
   const [name, setName] = useState(item?.name ?? "");
   const [slug, setSlug] = useState(item?.slug ?? "");
-  const [status, setStatus] = useState<ProjectStatus>(
-    item && isProjectStatus(item.status) ? item.status : "building",
-  );
   const [area, setArea] = useState<ProjectArea>(
     item && isProjectArea(item.area) ? item.area : "personal",
   );
@@ -219,7 +317,6 @@ function ProjectEditor({
       const payload = {
         name: name.trim(),
         slug: slug.trim(),
-        status,
         area,
         summary: summary.trim(),
         url: url.trim(),
@@ -264,7 +361,7 @@ function ProjectEditor({
   }
 
   return (
-    <div className="space-y-2 rounded-lg border bg-card p-3">
+    <div className="space-y-2">
       <Input
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -283,21 +380,6 @@ function ProjectEditor({
         />
       </div>
       <div className="flex flex-wrap gap-1">
-        {PROJECT_STATUS_ORDER.map((value) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setStatus(value)}
-            className={cn(
-              "rounded-full border px-2 py-0.5 text-xs",
-              status === value
-                ? PROJECT_STATUS_META[value].chip
-                : "border-border text-muted-foreground",
-            )}
-          >
-            {PROJECT_STATUS_META[value].label}
-          </button>
-        ))}
         {AREAS.map((value) => (
           <button
             key={value}
@@ -339,7 +421,12 @@ function ProjectEditor({
           取消
         </Button>
         {item && (
-          <Button size="sm" variant="ghost" onClick={() => void remove()} disabled={busy}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => void remove()}
+            disabled={busy}
+          >
             删除
           </Button>
         )}

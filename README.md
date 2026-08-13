@@ -47,7 +47,7 @@ npm run dev
 ## v2 功能
 
 - 今日:画像 status、待确认、作品摘要、手头的事(忙时主位、闲时可不看)、仓位摘要、备份告警
-- 项目:作品墙(在做 / 已上线 / 暂停)，与工作事项分开；MCP `get_projects` 同源只读
+- 项目:作品墙（大字目录 + 焦点海报，不分在做/上线/暂停），与工作事项分开；MCP `get_projects` 同源只读
 - 工作:快速录入、状态流转、轻分类筛选、置顶、组内/跨栏拖拽、行内编辑、软删除
 - 持仓:按 A 股/美股/其他分组维护人民币金额,占总资产比例自动计算;名称、买入逻辑、观察池和结构图可用
 - 投资复盘:由 MCP 提交固定四段月度审计与全量金额持仓,用户批准后同步保存总结和当月快照,并自动生成 `audit-sync` 的 status 层投资纪律联动提案
@@ -145,7 +145,7 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 
 - `get_profile`: 读取画像层；不传 `layers` 返回全部四层(`core/status/investing/relationship`)；可逗号指定子集。作品列表请用 `get_projects`，不要把项目墙当成画像层。
 - `list_profile_layers`: 列出四层的简介与最后更新时间。
-- `get_projects`: 读取作品墙（在做 / 已上线 / 暂停），与「项目」页同源；可选 `status` 过滤。
+- `get_projects`: 读取作品墙（名称、一句话、链接），与「项目」页同源。不分在做/上线/暂停。
 - `search_entries`: 搜索工作事项、作品、持仓和通用条目。
 - `get_topic_batch`: 读取 topic-radar 最新选题候选（可选 `account=lengjiao|carbon`）；与画像提案无关。
 - `propose_profile_patch`: 局部提案。`add/update/delete` 改 section 内单条；`replace_section` 整节替换（`new_content_md` 须以目标 `##` 开头；section 不存在则追加到层末）。同一调用方连续改同一层会累积到同一个 pending proposal。工具说明含主动识别提示：对话中出现稳定事实/原则/偏好变化时应主动提议，不必等用户要求「更新画像」。

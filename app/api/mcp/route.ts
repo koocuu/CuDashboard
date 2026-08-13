@@ -117,17 +117,12 @@ const mcpHandler = createMcpHandler(
       {
         title: "Get Projects",
         description:
-          "读取用户正在做或已上线的 coding 作品墙（与 dashboard「项目」页同源，与画像层独立）。返回名称、状态(building 在做 / live 已上线 / paused 暂停)、领域、一句话、链接、可选 skill 名。了解当前作品上下文时用本工具，不要把项目事实写进画像 skill。可选 status 过滤。",
-        inputSchema: {
-          status: z
-            .enum(["building", "live", "paused"])
-            .optional()
-            .describe("可选。只返回该状态的作品。不传则返回全部未删除作品。"),
-        },
+          "读取用户的 coding 作品墙（与 dashboard「项目」页同源，与画像层独立）。返回名称、领域、一句话、链接、可选 skill 名。了解当前作品上下文时用本工具，不要把项目事实写进画像。不分在做/上线/暂停。",
+        inputSchema: {},
       },
-      async ({ status }) => {
+      async () => {
         const items = await listProjects();
-        return textResult(formatProjectsMarkdown(items, status ?? null));
+        return textResult(formatProjectsMarkdown(items));
       },
     );
 

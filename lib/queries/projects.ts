@@ -1,44 +1,13 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import {
-  projects,
-  type NewProject,
-  type Project,
-  type ProjectStatus,
-} from "@/lib/db/schema";
-import { isProjectStatus } from "@/lib/project-meta";
-
-export function normalizeProjectStatus(
-  status: string | null | undefined,
-): ProjectStatus {
-  const value = status ?? "";
-  return isProjectStatus(value) ? value : "building";
-}
+import { projects, type NewProject, type Project } from "@/lib/db/schema";
 
 export async function listProjects(): Promise<Project[]> {
-  const rows = await db
+  return db
     .select()
     .from(projects)
     .where(isNull(projects.deletedAt))
     .orderBy(asc(projects.sortOrder), asc(projects.id));
-
-  return rows.map((row) => ({
-    ...row,
-    status: normalizeProjectStatus(row.status),
-  }));
-}
-
-export async function projectStats() {
-  const items = await listProjects();
-  const counts: Record<ProjectStatus, number> = {
-    building: 0,
-    live: 0,
-    paused: 0,
-  };
-  for (const item of items) {
-    counts[normalizeProjectStatus(item.status)] += 1;
-  }
-  return counts;
 }
 
 export async function nextProjectSortOrder(): Promise<number> {
@@ -53,7 +22,7 @@ export async function insertProject(
   values: Omit<NewProject, "id" | "createdAt" | "updatedAt" | "deletedAt">,
 ): Promise<Project> {
   const [row] = await db.insert(projects).values(values).returning();
-  return { ...row, status: normalizeProjectStatus(row.status) };
+  return row;
 }
 
 export async function updateProject(
@@ -63,7 +32,6 @@ export async function updateProject(
       NewProject,
       | "name"
       | "slug"
-      | "status"
       | "area"
       | "summary"
       | "url"
@@ -78,7 +46,7 @@ export async function updateProject(
     .set({ ...patch, updatedAt: new Date() })
     .where(and(eq(projects.id, id), isNull(projects.deletedAt)))
     .returning();
-  return row ? { ...row, status: normalizeProjectStatus(row.status) } : null;
+  return row ?? null;
 }
 
 export async function softDeleteProject(id: number): Promise<boolean> {
