@@ -1,8 +1,8 @@
 # PRD v2(定稿):个人画像 RAG + 人生状态 Dashboard(代号:Console)
 
-版本:v2.0(取代 v1.0,范围大幅收缩,以本文档为准)
-实施口径更新:2026-07-11(同步当前已上线的信息架构、金额持仓与 MCP 月度审计)
-面向读者:AI 开发工具(Codex / Claude Code)及开发者本人
+版本:v2.1(取代 v1.0,范围大幅收缩,以本文档为准)
+实施口径更新:2026-08-13(信息架构改为 今日 / 项目 / 画像；选题降为备查；作品墙可被 AI 读取；台账季节性)
+面向读者:AI 开发工具(Codex / Claude Code / Cursor)及开发者本人
 
 ---
 
@@ -11,7 +11,8 @@
 - **砍掉**:创作/情感/健身/感悟/决策日志板块的全部手动录入 UI;交易日志手动录入;日历与一切日期字段;proposal 之外的审核机制
 - **保留**:画像层完整设计(四层/双版本/三写入通道/proposal 确认流)、工作板块、持仓一览、鉴权、备份、技术约束
 - **新增**:首页"当前状态卡"(渲染画像 status 层)、工作事项零摩擦快速录入、手动置顶、"想做未做"状态
-- **原则变更**:未来任何新板块上线的唯一前提是"数据入口已存在"(见 1.3 铁律)
+- **2026-08-13**:顶栏改为「今日 / 项目 / 画像」；选题退出导航与首页主场，仅备查；作品墙为独立对象，MCP `get_projects` 可读；台账是季节性捕捉面，闲时不占主身份
+- **原则变更**:未来任何新板块上线的唯一前提是"数据入口已存在"(见 1.3 铁律)。有数据不等于要进导航——选题即反例。
 
 ---
 
@@ -19,26 +20,29 @@
 
 ### 1.1 一句话定义
 
-一个持久化的个人画像系统(可被任何 AI 读取和更新)+ 一个让用户十秒看清自己当前状态的 Dashboard。
+一个持久化的个人画像系统(可被任何 AI 读取和更新)+ 一面作品墙(给人看也给 AI 读)+ 一个季节性的「今日」捕捉面。
 
-### 1.2 两大组成
+### 1.2 三块组成
 
 **A. AI 画像层(产品灵魂)**
 一份策展过的、分层的个人画像文档。用户使用任何 AI(Claude/GPT/Grok/DeepSeek/豆包)时,通过链接或粘贴交付画像,AI 立刻获得完整用户上下文;任何 AI 也可通过三条通道提交画像更新,经用户 diff 确认后生效。
 
-**B. 人生状态 Dashboard(日常入口)**
-单屏首页,回答"我现在的状态是什么、手头有什么事"。核心使用场景只有两个:
-- 工作日早上到工位看一眼
-- 临时想到一件事(新任务 / 最近要做 / 一直没做的),随手记下来图个心安
+**B. 今日(季节性入口)**
+打开后先看近况和待确认。忙的时候台账浮上来，随手记下手头的事；闲的时候台账可以不管，空态不暗示失败。
 
-打开中的 App 页(Dashboard / 提案 / 投资等)通过 `/api/live-revision` 轻量轮询自动刷新(可见标签页约 4s 一次；切回前台立即探测):仅当提案、画像、持仓、工作事项或选题批次变更时才 `router.refresh()`,不是 WebSocket 实时推送。
+**C. 作品墙**
+正在做或已上线的 coding 项目，与工作事项分开。人和 AI 读同一份（页面 + MCP `get_projects`）。不自动写入画像层。
+
+打开中的 App 页通过 `/api/live-revision` 轻量轮询自动刷新(可见标签页约 4s 一次；切回前台立即探测；用首屏 revision 对照，避免首次探测吞掉已发生的变更):仅当提案、画像、持仓、工作事项、作品或选题批次变更时才 `router.refresh()`，并短暂提示「内容已更新」。
 
 ### 1.3 板块铁律(防止范围通胀)
 
 **一个板块要进 Dashboard,必须先回答"它的数据从哪来"。**
-- 工作事项:用户手动(已验证的真实习惯,替代现有记事本)✅
+- 工作事项:用户手动(已验证的真实习惯,忙时替代记事本)✅；闲时允许不用
+- 作品墙:用户手动维护作品对象；MCP `get_projects` 只读✅
 - 持仓:金额可低频手动修正;正式月更由 AI 通过 MCP 提交完整金额快照与审计,用户确认后生效✅
-- 灵感/感悟/情感/健身/决策:数据真实入口是 AI 对话,在 MCP 建成、AI 实际写入数据之前,**不做任何 UI**。板块跟着数据走,不跟着想象走。
+- 选题:topic-radar 已有写入，但**不进导航、不进今日主场**，仅 `/topics` 与 `get_topic_batch` 备查
+- 灵感/感悟/情感/健身/决策:数据真实入口是 AI 对话,在 MCP 建成、AI 实际写入数据之前,**不做任何 UI**。板块跟着使用走，不跟着「有数据」走。
 
 ### 1.4 明确不做
 
@@ -82,6 +86,11 @@ work_items
   id, name, category,
   status(someday/scheduled/in_progress/done),
   note, pinned(bool), sort_order, created_at, updated_at, done_at, deleted_at
+
+projects
+  id, name, slug, status(building/live/paused), area(personal/work/writing),
+  summary, url, repo_url, skill_ref, sort_order,
+  created_at, updated_at, deleted_at
 
 holdings
   id, market(cn/us/other), symbol, name, amount_cny,
@@ -159,7 +168,7 @@ PROFILE_UPDATE>>>
 
 解析:提取包裹块;`---` 前为元信息(layer 必填);格式非法给出具体错误提示。
 
-3. **MCP Server(Phase 3)**:`get_profile` / `search_entries` / `propose_profile_patch` / `propose_profile_update` / `propose_monthly_investment_update`。画像和投资写入均先创建待确认提案。`propose_profile_patch` 用于按二级标题和条目标题做局部增删改；同一调用方连续修改同一层时累积到同一个 pending proposal，其他来源已有 pending 时拒绝自动合并。画像写入工具的 description 含「主动识别」指令：对话中出现值得长期记住的稳定事实/原则/偏好变化时，AI 应主动提议 patch 或整层更新，不必等用户明确要求；仍以 dashboard 人工批准为最终把关。
+3. **MCP Server(Phase 3)**:`get_profile` / `list_profile_layers` / `get_projects` / `search_entries` / `propose_profile_patch` / `propose_profile_update` / `propose_monthly_investment_update` / `get_topic_batch`。画像和投资写入均先创建待确认提案。`get_projects` 只读作品墙，不写入画像。`propose_profile_patch` 用于按二级标题和条目标题做局部增删改；同一调用方连续修改同一层时累积到同一个 pending proposal，其他来源已有 pending 时拒绝自动合并。画像写入工具的 description 含「主动识别」指令：对话中出现值得长期记住的稳定事实/原则/偏好变化时，AI 应主动提议 patch 或整层更新，不必等用户明确要求；仍以 dashboard 人工批准为最终把关。
 
 ### 5.6 确认流程
 
@@ -169,14 +178,16 @@ PROFILE_UPDATE>>>
 
 ## 6. Dashboard 规格
 
-### 6.1 首页(单屏,自上而下)
+### 6.1 今日(单屏)
 
-1. **当前状态卡**:渲染画像 `status` 层的 Markdown。这是画像与 Dashboard 的唯一交汇点——AI 更新 status 层、用户确认后,这张卡自动变化
-2. **待确认角标**:有 pending proposal 时显示,点击进确认页
-3. **置顶焦点区**:pinned=true 的工作事项(无日期、无逾期概念,纯手动钉/取消)
-4. **工作台账**:完整列表按想做未做/排期待做/进行中/已完成分组,首页直接操作
-5. **持仓一览摘要**:持仓数 + 仓位结构迷你图,点击进板块
-6. **AI 写入动态**:最近 proposal 与合并记录流水
+顶栏:今日 / 项目 / 画像。选题和投资不进导航。
+
+1. **近期状态**:渲染画像 `status` 层内部状态。这是画像与今日的交汇点
+2. **待确认**:有 pending proposal 时显示,点击进确认页
+3. **作品摘要**:在做/已上线的项目短列表,点进作品墙
+4. **手头的事**:忙时(有进行中/排期/置顶)台账占主位；闲时保留录入框,文案提示可以不管。无逾期语言
+5. **仓位摘要**:持仓数 + 结构迷你图,点击进投资页
+6. **备查链**:页脚「投资 · 选题备查」
 
 ### 6.2 工作板块
 
@@ -194,6 +205,18 @@ PROFILE_UPDATE>>>
 - 名称和金额可手动修正;正式月更走 MCP 固定模板提案
 - 月度审计固定四段:本月结论、触发与纪律、本月动作、下月核验;批准持仓提案时固化同节点快照
 
+### 6.4 作品墙
+
+- 独立于 work_items。状态:在做 / 已上线 / 暂停。领域:个人 / 工作 / 写作
+- 字段:名称、slug、一句话、线上地址、仓库、可选 skill 名
+- 三栏可视化；人和 MCP `get_projects` 读同一份
+- 不自动生成画像；状态更新仍走提案策展
+
+### 6.5 选题(备查)
+
+- 保留 `/topics` 与 `get_topic_batch`，不进顶栏、不进今日主场
+- 不把打分列表当成必须完成的作业
+
 ---
 
 ## 7. REST API
@@ -202,7 +225,9 @@ PROFILE_UPDATE>>>
 |---|---|---|---|
 | GET | /c/<slug> | share | 网页式画像分享 |
 | GET | /api/export | read | 全量数据导出(结构化 Markdown 打包 zip) |
-| GET | /api/search?q= | read | pg_trgm 全文检索(entries + work_items + holdings) |
+| GET | /api/search?q= | read | pg_trgm 全文检索(entries + work_items + projects + holdings) |
+| GET/POST | /api/projects | session | 作品墙列表与新建 |
+| PATCH/DELETE | /api/projects/:id | session | 作品更新与软删除 |
 | POST | /api/profile/proposals | write | 提交画像修改提案 |
 | GET | /api/profile/proposals | write | 查询提案状态 |
 | POST | /api/import | write | 批量导入(格式实现时定义并写入 README,用于初始迁移) |

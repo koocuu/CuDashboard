@@ -78,6 +78,13 @@
       "when": 1783990800000,
       "tag": "0010_topic_batches",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786586400000,
+      "tag": "0011_projects",
+      "breakpoints": true
     }
   ]
 }

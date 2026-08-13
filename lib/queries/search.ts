@@ -1,6 +1,6 @@
 import { and, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { entries, holdings, workItems } from "@/lib/db/schema";
+import { entries, holdings, projects, workItems } from "@/lib/db/schema";
 
 export interface SearchHit {
   kind: string;
@@ -13,7 +13,7 @@ export async function searchAll(q: string, limit = 30): Promise<SearchHit[]> {
   const term = `%${q}%`;
   const hits: SearchHit[] = [];
 
-  const [entryRows, workRows, holdingRows] = await Promise.all([
+  const [entryRows, workRows, holdingRows, projectRows] = await Promise.all([
     db
       .select()
       .from(entries)
@@ -44,6 +44,16 @@ export async function searchAll(q: string, limit = 30): Promise<SearchHit[]> {
         ),
       )
       .limit(limit),
+    db
+      .select()
+      .from(projects)
+      .where(
+        and(
+          isNull(projects.deletedAt),
+          sql`(${projects.name} ILIKE ${term} OR ${projects.summary} ILIKE ${term} OR ${projects.slug} ILIKE ${term})`,
+        ),
+      )
+      .limit(limit),
   ]);
 
   const snip = (value: string) =>
@@ -71,6 +81,14 @@ export async function searchAll(q: string, limit = 30): Promise<SearchHit[]> {
       id: row.id,
       title: row.name,
       snippet: snip(row.thesisMd),
+    });
+  }
+  for (const row of projectRows) {
+    hits.push({
+      kind: "作品",
+      id: row.id,
+      title: row.name,
+      snippet: snip([row.status, row.summary].filter(Boolean).join(" · ")),
     });
   }
 

@@ -6,6 +6,7 @@ import {
   holdings,
   profileDoc,
   profileProposals,
+  projects,
   topicBatches,
   workItems,
 } from "@/lib/db/schema";
@@ -30,6 +31,7 @@ export async function getLiveRevision(): Promise<string> {
     holdingUpdated,
     topicAgg,
     workAgg,
+    projectAgg,
   ] = await Promise.all([
     db
       .select({
@@ -70,6 +72,11 @@ export async function getLiveRevision(): Promise<string> {
       .from(workItems)
       .where(isNull(workItems.deletedAt))
       .then((rows) => rows[0]),
+    db
+      .select({ updatedAt: max(projects.updatedAt) })
+      .from(projects)
+      .where(isNull(projects.deletedAt))
+      .then((rows) => rows[0]),
   ]);
 
   const pendingFp = fingerprint(
@@ -86,5 +93,6 @@ export async function getLiveRevision(): Promise<string> {
     `h:${holdingUpdated?.updatedAt?.getTime() ?? 0}`,
     `tb:${topicAgg?.maxId ?? 0}`,
     `w:${workAgg?.updatedAt?.getTime() ?? 0}`,
+    `pj:${projectAgg?.updatedAt?.getTime() ?? 0}`,
   ].join("|");
 }

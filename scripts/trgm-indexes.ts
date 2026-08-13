@@ -19,6 +19,8 @@ async function main() {
     ["work_items_note_trgm", "work_items", "note"],
     ["holdings_name_trgm", "holdings", "name"],
     ["holdings_thesis_trgm", "holdings", "thesis_md"],
+    ["projects_name_trgm", "projects", "name"],
+    ["projects_summary_trgm", "projects", "summary"],
   ];
 
   for (const [idx, table, col] of indexes) {

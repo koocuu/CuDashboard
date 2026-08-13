@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AppTopNav } from "@/components/app-top-nav";
 import { LiveRefresh } from "@/components/live-refresh";
 import { isAuthenticated } from "@/lib/auth/session";
+import { getLiveRevision } from "@/lib/live-revision";
 import { pendingProposalCount } from "@/lib/queries/profile";
 import { workStats } from "@/lib/queries/work";
 import { formatDate } from "@/lib/utils";
@@ -20,6 +21,7 @@ export default async function AppLayout({
 
   let proposalCount = 0;
   let stats: Awaited<ReturnType<typeof workStats>> | null = null;
+  let initialRevision: string | null = null;
   try {
     [proposalCount, stats] = await Promise.all([
       pendingProposalCount(),
@@ -27,6 +29,11 @@ export default async function AppLayout({
     ]);
   } catch {
     // Do not block rendering while the database is unavailable.
+  }
+  try {
+    initialRevision = await getLiveRevision();
+  } catch {
+    // 作品表未迁移时不拖垮角标
   }
 
   const statsLabel = stats
@@ -44,7 +51,7 @@ export default async function AppLayout({
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col px-4 sm:px-6 xl:px-8">
-      <LiveRefresh />
+      <LiveRefresh initialRevision={initialRevision} />
       <AppTopNav proposalCount={proposalCount} statsLabel={statsLabel} />
       <main className="flex-1 pb-6 pt-4">{children}</main>
     </div>

@@ -6,9 +6,9 @@ import { LogoutButton } from "@/components/logout-button";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "CONSOLE", tracking: "tracking-[0.22em]" },
-  { href: "/topics", label: "选题", tracking: "tracking-[0.14em]" },
-  { href: "/profile", label: "画像", tracking: "tracking-[0.14em]" },
+  { href: "/dashboard", label: "今日" },
+  { href: "/projects", label: "项目" },
+  { href: "/profile", label: "画像" },
 ] as const;
 
 export function AppTopNav({
@@ -34,8 +34,7 @@ export function AppTopNav({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative rounded-lg px-2.5 py-1.5 font-mono text-xs font-semibold transition-colors",
-                  item.tracking,
+                  "relative rounded-lg px-2.5 py-1.5 text-sm transition-colors",
                   active
                     ? "border bg-card text-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -43,7 +42,7 @@ export function AppTopNav({
               >
                 {item.label}
                 {showBadge && (
-                  <span className="absolute -right-1 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold tracking-normal text-primary-foreground">
+                  <span className="absolute -right-1 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
                     {proposalCount}
                   </span>
                 )}
@@ -53,7 +52,7 @@ export function AppTopNav({
         </nav>
 
         {statsLabel && (
-          <span className="hidden truncate font-mono text-[11px] text-muted-foreground md:inline">
+          <span className="hidden truncate text-[11px] text-muted-foreground md:inline">
             {statsLabel}
           </span>
         )}

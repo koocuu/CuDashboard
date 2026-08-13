@@ -3,28 +3,42 @@
 import { useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-/** 可见时轮询间隔；提案提交后最多等这么久就会刷。 */
 const POLL_MS = 4_000;
 
 /**
  * 可见标签页轮询 /api/live-revision；版本变化时 router.refresh()。
- * 挂在 (app) layout，覆盖导航角标与当前页 RSC。
+ * 用服务端首屏 revision 做对照，避免首次探测把已发生的变更吞掉。
  */
-export function LiveRefresh() {
+export function LiveRefresh({
+  initialRevision,
+}: {
+  initialRevision?: string | null;
+}) {
   const router = useRouter();
-  const lastRevision = useRef<string | null>(null);
+  const lastRevision = useRef<string | null>(initialRevision ?? null);
   const inFlight = useRef(false);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, startTransition] = useTransition();
+  const noticeRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | null = null;
     let cancelled = false;
 
+    const showNotice = () => {
+      const el = noticeRef.current;
+      if (!el) return;
+      el.dataset.show = "1";
+      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+      noticeTimer.current = setTimeout(() => {
+        el.dataset.show = "0";
+      }, 2200);
+    };
+
     const poll = async () => {
       if (cancelled || document.hidden || inFlight.current) return;
       inFlight.current = true;
       try {
-        // 时间戳防中间层把 GET 当可缓存
         const res = await fetch(`/api/live-revision?t=${Date.now()}`, {
           method: "GET",
           cache: "no-store",
@@ -41,6 +55,7 @@ export function LiveRefresh() {
         }
         if (data.revision !== lastRevision.current) {
           lastRevision.current = data.revision;
+          showNotice();
           startTransition(() => {
             router.refresh();
           });
@@ -86,10 +101,19 @@ export function LiveRefresh() {
     return () => {
       cancelled = true;
       stop();
+      if (noticeTimer.current) clearTimeout(noticeTimer.current);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("focus", onFocus);
     };
   }, [router, startTransition]);
 
-  return null;
+  return (
+    <p
+      ref={noticeRef}
+      data-show="0"
+      className="pointer-events-none fixed right-4 top-3 z-50 rounded-md border bg-card px-3 py-1.5 font-mono text-[11px] text-primary opacity-0 transition-opacity data-[show=1]:opacity-100"
+    >
+      内容已更新
+    </p>
+  );
 }

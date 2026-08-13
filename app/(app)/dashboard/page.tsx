@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { TopicRadarPanel } from "@/components/dashboard/topic-radar-panel";
+import { ProjectStrip } from "@/components/dashboard/project-strip";
 import { QuickAdd } from "@/components/quick-add";
 import { MarkdownLite } from "@/components/ui/markdown-lite";
 import { WorkBoard } from "@/components/work/work-board";
-import type { BackupRun, ProfileLayer } from "@/lib/db/schema";
+import type { BackupRun } from "@/lib/db/schema";
 import { buildPositionSlices, donutGradient } from "@/lib/invest-chart";
-import { LAYER_META } from "@/lib/profile-meta";
 import { latestBackupRun } from "@/lib/queries/backup";
 import { investStats, listHoldings } from "@/lib/queries/invest";
 import { getAllLayers, listProposals } from "@/lib/queries/profile";
-import { getLatestTopicBatch } from "@/lib/queries/topics";
+import { listProjects } from "@/lib/queries/projects";
 import { listWorkItems } from "@/lib/queries/work";
 import { formatDate, formatRelativeTime } from "@/lib/utils";
 import {
@@ -21,7 +20,6 @@ import { extractInternalStatusForDashboard } from "@/lib/status-sections";
 
 export const dynamic = "force-dynamic";
 
-// 兜底空数据保证首页可渲染,但把数据库错误记进日志,不再静默吞掉
 function logQueryError<T>(label: string, fallback: T) {
   return (error: unknown): T => {
     console.error(`dashboard: ${label} 查询失败`, error);
@@ -41,7 +39,7 @@ export default async function DashboardPage() {
     }
   }
 
-  const [workItems, invest, holdings, layers, proposals, backup, topicBatch] =
+  const [workItems, invest, holdings, layers, proposals, backup, projectItems] =
     await Promise.all([
       listWorkItems().catch(logQueryError("work_items", [])),
       investStats().catch(logQueryError("invest_stats", null)),
@@ -49,7 +47,7 @@ export default async function DashboardPage() {
       getAllLayers().catch(logQueryError("profile_layers", [])),
       listProposals().catch(logQueryError("proposals", [])),
       latestBackupRun().catch(logQueryError("backup_runs", null)),
-      getLatestTopicBatch().catch(logQueryError("topic_batches", null)),
+      listProjects().catch(logQueryError("projects", [])),
     ]);
 
   const statusDoc = layers.find((layer) => layer.layer === "status");
@@ -65,7 +63,6 @@ export default async function DashboardPage() {
     : null;
   const statusStale = statusAgeDays !== null && statusAgeDays > 35;
   const pending = proposals.filter((p) => p.status === "pending");
-  const recentWrites = proposals.slice(0, 5);
   const { slices, total } = buildPositionSlices(holdings, 4);
   const categoryOptions = Array.from(
     new Set(
@@ -75,189 +72,163 @@ export default async function DashboardPage() {
     ),
   ).sort((a, b) => a.localeCompare(b, "zh-CN"));
 
+  const ledgerBusy = workItems.some(
+    (item) =>
+      item.pinned ||
+      item.status === "in_progress" ||
+      item.status === "scheduled",
+  );
+  const somedayCount = workItems.filter((item) => item.status === "someday").length;
+
   return (
     <div className="space-y-6">
-      {/* 移动端把快速录入放在首屏最顶上,桌面端仍在右栏 */}
       <div className="lg:hidden">
         <QuickAdd categoryOptions={categoryOptions} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.82fr)_minmax(0,1.28fr)] xl:grid-cols-[420px_minmax(0,1fr)]">
-      <aside className="space-y-5">
-        <section className="rounded-xl border bg-card p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h1 className="text-sm font-normal text-muted-foreground">
-              近期状态
-            </h1>
-            {statusStale ? (
-              <span
-                className="shrink-0 font-mono text-[11px]"
-                style={{ color: "#9A938A" }}
-              >
-                上次更新 {statusAgeDays} 天前
-              </span>
-            ) : (
-              <span className="shrink-0 font-mono text-[11px] text-primary">
-                {statusDoc?.updatedAt
-                  ? formatDate(statusDoc.updatedAt, {
-                      month: "2-digit",
-                      day: "2-digit",
-                    }).replace(/\//g, "-")
-                  : "--"}{" "}
-                · v{statusDoc?.version ?? 1}
-              </span>
-            )}
-          </div>
-          <div className="text-[15px] leading-7">
-            <MarkdownLite content={statusPreview} />
-          </div>
-          {statusRest && (
-            <details className="group mt-3 border-t pt-3">
-              <summary className="cursor-pointer list-none text-sm text-muted-foreground hover:text-foreground">
-                展开全文 →
-              </summary>
-              <div className="mt-3 text-[15px] leading-7">
-                <MarkdownLite content={statusRest} />
-              </div>
-            </details>
-          )}
-        </section>
-
-        <TopicRadarPanel batch={topicBatch} />
-
-        {pending.length > 0 && (
-          <Link
-            href="/profile/proposals"
-            className="block rounded-xl border border-primary/40 bg-card px-3 py-2 transition-opacity hover:opacity-80"
-          >
-            <span className="font-mono text-[11px] text-primary">
-              待确认 · {String(pending.length).padStart(2, "0")}
-            </span>
-          </Link>
-        )}
-
-        <BackupStatus
-          backup={backup}
-          enabled={Boolean(
-            process.env.GITHUB_BACKUP_TOKEN?.trim() &&
-              process.env.GITHUB_BACKUP_REPO?.trim(),
-          )}
-        />
-
-        <section className="border-t pt-4">
-          <Link href="/invest" className="block">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-normal text-muted-foreground">
-                仓位
-              </h2>
-              <span className="text-sm text-muted-foreground">打开 →</span>
-            </div>
-
-            <div className="mt-4 flex items-center gap-5">
-              <PositionDonut
-                slices={slices}
-                total={total}
-              />
-              <div className="min-w-0 flex-1 space-y-2">
-                {slices.map((slice) => (
-                  <div
-                    key={slice.key}
-                    className="flex items-center gap-2 text-xs"
-                  >
-                    <span
-                      className="h-2.5 w-2.5 rounded-sm"
-                      style={{ backgroundColor: slice.color }}
-                    />
-                    <span className="truncate">{slice.label}</span>
-                    <span className="ml-auto font-mono text-muted-foreground">
-                      {slice.value}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {invest && (
-              <p className="mt-4 text-xs text-muted-foreground">
-                持仓{" "}
-                <span className="font-mono">
-                  {String(invest.holdingCount).padStart(2, "0")}
-                </span>{" "}
-                · 观察{" "}
-                <span className="font-mono">
-                  {String(invest.watchingCount).padStart(2, "0")}
-                </span>
-              </p>
-            )}
-          </Link>
-        </section>
-
-        <section className="border-t pt-4">
-          <h2 className="text-sm font-normal text-muted-foreground">AI 动态</h2>
-          <div className="mt-2 space-y-1">
-            {recentWrites.length > 0 ? (
-              recentWrites.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/profile/proposals/${p.id}`}
-                  className="grid grid-cols-[1fr_auto] gap-2 border-b py-2 text-sm"
+        <aside className="space-y-5">
+          <section>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h1 className="text-sm font-normal text-muted-foreground">
+                近期状态
+              </h1>
+              {statusStale ? (
+                <span
+                  className="shrink-0 text-[11px]"
+                  style={{ color: "#9A938A" }}
                 >
-                  <span className="truncate">
-                    {LAYER_META[p.layer as ProfileLayer]?.label ?? p.layer} ·{" "}
-                    <span className="text-muted-foreground">
-                      {p.diffSummary}
-                    </span>
-                  </span>
-                  <span
-                    className={
-                      p.status === "pending"
-                        ? "rounded-full bg-[#FBE7E1] px-2 py-0.5 font-mono text-[11px] text-primary"
-                        : p.status === "approved"
-                          ? "font-mono text-[11px] text-positive"
-                          : "font-mono text-[11px] text-muted-foreground"
-                    }
-                  >
-                    {p.status === "pending"
-                      ? "待确认"
-                      : p.status === "approved"
-                        ? "已合并"
-                        : "已拒绝"}
-                  </span>
-                </Link>
-              ))
-            ) : (
-              <p className="py-3 text-sm text-muted-foreground">
-                暂无 AI 写入。
-              </p>
+                  上次更新 {statusAgeDays} 天前
+                </span>
+              ) : (
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  {statusDoc?.updatedAt
+                    ? formatDate(statusDoc.updatedAt, {
+                        month: "2-digit",
+                        day: "2-digit",
+                      }).replace(/\//g, "-")
+                    : "--"}{" "}
+                  · v{statusDoc?.version ?? 1}
+                </span>
+              )}
+            </div>
+            <div className="text-[15px] leading-7">
+              <MarkdownLite content={statusPreview} />
+            </div>
+            {statusRest && (
+              <details className="group mt-3 border-t pt-3">
+                <summary className="cursor-pointer list-none text-sm text-muted-foreground hover:text-foreground">
+                  展开全文 →
+                </summary>
+                <div className="mt-3 text-[15px] leading-7">
+                  <MarkdownLite content={statusRest} />
+                </div>
+              </details>
             )}
-          </div>
-        </section>
-      </aside>
+          </section>
 
-      <main className="space-y-4">
-        <div className="hidden lg:block">
-          <QuickAdd categoryOptions={categoryOptions} />
-        </div>
+          {pending.length > 0 && (
+            <Link
+              href="/profile/proposals"
+              className="block border-y py-2"
+            >
+              <span className="text-sm text-primary">
+                待确认 {pending.length} 条 →
+              </span>
+            </Link>
+          )}
 
-        <section className="space-y-3">
-          <div className="border-b pb-2">
-            <h2 className="text-sm font-normal text-muted-foreground">
-              工作台账
-            </h2>
-          </div>
-          <WorkBoard
-            initialItems={workItems}
-            showQuickAdd={false}
-            initialCategoryFilter={initialCategoryFilter}
+          <ProjectStrip
+            projects={projectItems}
+            limit={ledgerBusy ? 4 : 6}
           />
-        </section>
-      </main>
+
+          <section className="border-t pt-4">
+            <Link href="/invest" className="block">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-normal text-muted-foreground">
+                  仓位
+                </h2>
+                <span className="text-xs text-muted-foreground">打开 →</span>
+              </div>
+
+              <div className="mt-4 flex items-center gap-5">
+                <PositionDonut slices={slices} total={total} />
+                <div className="min-w-0 flex-1 space-y-2">
+                  {slices.map((slice) => (
+                    <div
+                      key={slice.key}
+                      className="flex items-center gap-2 text-xs"
+                    >
+                      <span
+                        className="h-2.5 w-2.5 rounded-sm"
+                        style={{ backgroundColor: slice.color }}
+                      />
+                      <span className="truncate">{slice.label}</span>
+                      <span className="ml-auto font-mono text-muted-foreground">
+                        {slice.value}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {invest && (
+                <p className="mt-4 text-xs text-muted-foreground">
+                  持仓 {String(invest.holdingCount).padStart(2, "0")} · 观察{" "}
+                  {String(invest.watchingCount).padStart(2, "0")}
+                </p>
+              )}
+            </Link>
+          </section>
+
+          <BackupStatus
+            backup={backup}
+            enabled={Boolean(
+              process.env.GITHUB_BACKUP_TOKEN?.trim() &&
+                process.env.GITHUB_BACKUP_REPO?.trim(),
+            )}
+          />
+        </aside>
+
+        <main className="space-y-4">
+          <div className="hidden lg:block">
+            <QuickAdd categoryOptions={categoryOptions} />
+          </div>
+
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between border-b pb-2">
+              <h2 className="text-sm font-normal text-muted-foreground">
+                手头的事
+              </h2>
+              {!ledgerBusy && somedayCount > 0 ? (
+                <span className="text-[11px] text-muted-foreground">
+                  想做 {String(somedayCount).padStart(2, "0")} · 闲的时候可以不管
+                </span>
+              ) : null}
+            </div>
+            <WorkBoard
+              initialItems={workItems}
+              showQuickAdd={false}
+              initialCategoryFilter={initialCategoryFilter}
+            />
+          </section>
+        </main>
       </div>
+
+      <p className="border-t pt-3 text-[11px] text-muted-foreground">
+        <Link href="/invest" className="hover:text-foreground">
+          投资
+        </Link>
+        <span className="mx-2">·</span>
+        <Link href="/topics" className="hover:text-foreground">
+          选题备查
+        </Link>
+      </p>
     </div>
   );
 }
 
-// 备份状态常驻显示:不只报失败,长时间没跑(cron 停了)也要能看出来
 const BACKUP_STALE_MS = 48 * 60 * 60 * 1000;
 
 function BackupStatus({
@@ -269,7 +240,7 @@ function BackupStatus({
 }) {
   if (!enabled) {
     return (
-      <p className="border-t pt-3 font-mono text-[11px] text-muted-foreground">
+      <p className="border-t pt-3 text-[11px] text-muted-foreground">
         备份 · 未启用
       </p>
     );
@@ -277,7 +248,7 @@ function BackupStatus({
 
   if (!backup) {
     return (
-      <p className="border-t pt-3 font-mono text-[11px] text-muted-foreground">
+      <p className="border-t pt-3 text-[11px] text-muted-foreground">
         备份 · 尚无记录
       </p>
     );
@@ -290,15 +261,15 @@ function BackupStatus({
 
   if (!failed && !stale) {
     return (
-      <p className="border-t pt-3 font-mono text-[11px] text-muted-foreground">
+      <p className="border-t pt-3 text-[11px] text-muted-foreground">
         备份 · {ago}
       </p>
     );
   }
 
   return (
-    <div className="rounded-xl border border-primary/40 bg-card px-3 py-2">
-      <span className="font-mono text-[11px] text-primary">
+    <div className="border-t pt-3">
+      <span className="text-[11px] text-primary">
         {failed ? "备份失败" : "备份已停滞"} · {ago}
       </span>
       {failed && backup.message && (
@@ -323,7 +294,7 @@ function PositionDonut({
       style={{ background: donutGradient(slices) }}
       aria-label="仓位结构环形图"
     >
-      <div className="grid h-[68px] w-[68px] place-items-center content-center rounded-full bg-card">
+      <div className="grid h-[68px] w-[68px] place-items-center content-center rounded-full bg-background">
         <span className="text-[10px] text-muted-foreground">已投</span>
         <span className="font-mono text-sm text-foreground">{total}%</span>
       </div>

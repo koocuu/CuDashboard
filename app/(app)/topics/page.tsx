@@ -19,10 +19,10 @@ export default async function TopicsPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-end justify-between gap-3 border-b pb-3">
         <div>
-          <h1 className="text-sm font-normal text-muted-foreground">选题雷达</h1>
+          <h1 className="text-sm font-normal text-muted-foreground">选题备查</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {batch
-              ? `${batch.day} · ${batch.summary || "最新一批候选"}`
+              ? `${batch.day} · ${batch.summary || "最新一批候选"}。灵感来了再翻，不是每日作业。`
               : "尚无批次。等 topic-radar 写入后刷新。"}
           </p>
         </div>
@@ -30,7 +30,7 @@ export default async function TopicsPage() {
           href="/dashboard"
           className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
         >
-          ← 首页
+          ← 今日
         </Link>
       </div>
 

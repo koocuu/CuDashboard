@@ -355,3 +355,43 @@ export const topicBatches = pgTable(
   }),
 );
 export type TopicBatch = typeof topicBatches.$inferSelect;
+
+// ============================================================
+// 作品墙：上线/在做的 coding 项目。给人看，也给 AI 读。
+// 与 work_items 分开：作品是对象，事项是季节性待办。
+// ============================================================
+
+export const PROJECT_STATUSES = ["building", "live", "paused"] as const;
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
+export const PROJECT_AREAS = ["personal", "work", "writing"] as const;
+export type ProjectArea = (typeof PROJECT_AREAS)[number];
+
+export const projects = pgTable(
+  "projects",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    status: text("status").notNull().default("building"),
+    area: text("area").notNull().default("personal"),
+    summary: text("summary").notNull().default(""),
+    url: text("url").notNull().default(""),
+    repoUrl: text("repo_url").notNull().default(""),
+    skillRef: text("skill_ref").notNull().default(""),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => ({
+    statusIdx: index("projects_status_idx").on(t.status),
+    sortIdx: index("projects_sort_idx").on(t.sortOrder),
+  }),
+);
+export type Project = typeof projects.$inferSelect;
+export type NewProject = typeof projects.$inferInsert;

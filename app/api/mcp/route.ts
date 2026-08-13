@@ -7,6 +7,8 @@ import { searchAll } from "@/lib/queries/search";
 import { createProposal } from "@/lib/proposals";
 import { getAllLayers, isValidLayer } from "@/lib/queries/profile";
 import { getLatestTopicBatch } from "@/lib/queries/topics";
+import { listProjects } from "@/lib/queries/projects";
+import { formatProjectsMarkdown } from "@/lib/projects-display";
 import { formatTopicBatchMarkdown } from "@/lib/topics-display";
 import {
   createMonthlyInvestmentProposal,
@@ -44,7 +46,7 @@ const mcpHandler = createMcpHandler(
       {
         title: "Get Profile",
         description:
-          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/status/investing/relationship);不传则返回该 token 权限内的全部四层。MCP 内部不做默认收窄,分级只发生在是否连接此 MCP。status 含「内部状态」与「公开状态」两节。",
+          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/status/investing/relationship);不传则返回该 token 权限内的全部四层。MCP 内部不做默认收窄,分级只发生在是否连接此 MCP。status 含「内部状态」与「公开状态」两节。当前 coding 作品列表不在画像层，请另调 get_projects。",
         inputSchema: {
           layers: z
             .string()
@@ -92,7 +94,7 @@ const mcpHandler = createMcpHandler(
       {
         title: "Search Entries",
         description:
-          "搜索用户数据库中的工作事项、持仓和通用条目。参数 q 是搜索关键词。底层复用 dashboard 的 pg_trgm/ILIKE 全文检索,适合回答'最近排期事项是什么'、'某个标的买入逻辑是什么'这类问题。",
+          "搜索用户数据库中的工作事项、作品、持仓和通用条目。参数 q 是搜索关键词。底层复用 dashboard 的 pg_trgm/ILIKE 全文检索,适合回答'最近排期事项是什么'、'某个标的买入逻辑是什么'、'捋捋是什么项目'这类问题。",
         inputSchema: {
           q: z.string().min(1).describe("搜索关键词,例如 排期、北方华创、Console。"),
         },
@@ -111,11 +113,30 @@ const mcpHandler = createMcpHandler(
     );
 
     server.registerTool(
+      "get_projects",
+      {
+        title: "Get Projects",
+        description:
+          "读取用户正在做或已上线的 coding 作品墙（与 dashboard「项目」页同源，与画像层独立）。返回名称、状态(building 在做 / live 已上线 / paused 暂停)、领域、一句话、链接、可选 skill 名。了解当前作品上下文时用本工具，不要把项目事实写进画像 skill。可选 status 过滤。",
+        inputSchema: {
+          status: z
+            .enum(["building", "live", "paused"])
+            .optional()
+            .describe("可选。只返回该状态的作品。不传则返回全部未删除作品。"),
+        },
+      },
+      async ({ status }) => {
+        const items = await listProjects();
+        return textResult(formatProjectsMarkdown(items, status ?? null));
+      },
+    );
+
+    server.registerTool(
       "get_topic_batch",
       {
         title: "Get Topic Batch",
         description:
-          "读取 topic-radar 写入的最新选题候选批次（首页「今日选题」/topics 同源数据）。返回 Markdown：中文标题、分数、切入点、原文链接。可选 account 过滤棱角计划(lengjiao)或碳基灵感收容所(carbon)。这不是画像层，也不经提案确认；写稿前仍须人工挑选。",
+          "读取 topic-radar 写入的最新选题候选批次（/topics 备查页同源数据，已不在导航与首页主场）。返回 Markdown：中文标题、分数、切入点、原文链接。可选 account 过滤棱角计划(lengjiao)或碳基灵感收容所(carbon)。这不是画像层，也不经提案确认；写稿前仍须人工挑选。用户写欲来自亲身经历，不要把本列表当成必须完成的作业。",
         inputSchema: {
           account: z
             .string()

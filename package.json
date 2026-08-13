@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "tsx scripts/migrate.ts && tsx scripts/trgm-indexes.ts && tsx scripts/seed-projects.ts && next build",
     "test:profile-patch": "tsx --test lib/profile-patch.test.ts",
     "start": "next start",
     "lint": "next lint",
@@ -14,6 +15,7 @@
     "db:push": "drizzle-kit push",
     "hash": "tsx scripts/hash-password.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
+    "seed:projects": "tsx scripts/seed-projects.ts",
     "sync:holdings:2026-07": "tsx scripts/sync-holdings-2026-07.ts",
     "migrate:profile-layers-v3": "tsx scripts/migrate-profile-layers-v3.ts"
   },

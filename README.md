@@ -1,8 +1,8 @@
-# Console · 个人画像 RAG + 人生状态 Dashboard
+# Console · 个人画像 RAG + 作品墙 + 今日
 
-依据 `PRD-个人知识库系统.md` v2.0 开发。开发进度见 [`开发进度.md`](开发进度.md)。
+依据 `PRD-个人知识库系统.md` v2.1 开发。开发进度见 [`开发进度.md`](开发进度.md)。
 
-当前范围:**v2 Phase 1–3 已实现**。v1 的创作/情感/健身/感悟/决策/交易日志手动 UI 已按 v2 收敛移除。
+当前范围:**v2 Phase 1–3 已实现**；2026-08-13 信息架构改为 **今日 / 项目 / 画像**。选题降为备查。v1 的创作/情感/健身/感悟/决策/交易日志手动 UI 已按 v2 收敛移除。
 
 ## 技术栈
 
@@ -17,9 +17,10 @@ cp .env.example .env
 # 1) 生成登录密码哈希,拷贝到 .env 的 AUTH_PASSWORD_HASH
 npm run hash -- 你的明文密码
 
-# 2) 执行迁移和中文检索索引
+# 2) 本地执行迁移和中文检索索引（Vercel 部署会在 build 里自动跑 migrate / trgm / seed:projects）
 npm run db:migrate
 npm run db:trgm
+npm run seed:projects
 
 # 3) 导入 demo 数据(来自 console-seed-data.md,可重复执行)
 npm run seed:demo
@@ -45,14 +46,15 @@ npm run dev
 
 ## v2 功能
 
-- 首页:画像 `status` 当前状态卡、pending proposal 角标、置顶工作事项、工作摘要、持仓摘要、AI 写入动态、备份失败告警
+- 今日:画像 status、待确认、作品摘要、手头的事(忙时主位、闲时可不看)、仓位摘要、备份告警
+- 项目:作品墙(在做 / 已上线 / 暂停)，与工作事项分开；MCP `get_projects` 同源只读
 - 工作:快速录入、状态流转、轻分类筛选、置顶、组内/跨栏拖拽、行内编辑、软删除
 - 持仓:按 A 股/美股/其他分组维护人民币金额,占总资产比例自动计算;名称、买入逻辑、观察池和结构图可用
 - 投资复盘:由 MCP 提交固定四段月度审计与全量金额持仓,用户批准后同步保存总结和当月快照,并自动生成 `audit-sync` 的 status 层投资纪律联动提案
 - 画像:四层 Markdown(core/status/investing/relationship)、完整版/通用版/自定义分发、一键复制、版本历史、回滚；status 含内部状态与公开状态，公开状态同步网站 /now；超过 35 天未更新时首页眉标提示
 - Proposal:REST/write token、粘贴更新块、MCP 写入通道,全部需用户 diff 确认
 - Token:read/write token 生成、吊销、最后使用时间
-- MCP:`get_profile` / `list_profile_layers` / `search_entries` / `propose_profile_update` / `propose_profile_patch` / `propose_monthly_investment_update`（提交审计后应立刻更新 status）
+- MCP:`get_profile` / `list_profile_layers` / `get_projects` / `search_entries` / `propose_profile_update` / `propose_profile_patch` / `propose_monthly_investment_update` / `get_topic_batch`（提交审计后应立刻更新 status）
 - 导入导出:`/api/import` JSON 导入,`/api/export` 全量 Markdown ZIP
 - 备份:Vercel Cron 每日全量 Markdown 快照到 GitHub 私库;未配置视为未启用,启用后失败或 48 小时未成功才告警
 - Demo seed:`npm run seed:demo` 导入 `console-seed-data.md` 对应的工作事项、持仓、画像层和一条 pending proposal
@@ -62,13 +64,16 @@ npm run dev
 ```text
 app/
   (app)/
-    dashboard/      # v2 单屏状态首页
-    work/           # 工作台账
+    dashboard/      # 今日
+    projects/       # 作品墙
+    work/           # 重定向到今日
     invest/         # 持仓一览
     profile/        # 画像、分发、提案、token
+    topics/         # 选题备查（不进导航）
   api/
     auth/           # 登录 / 登出
     work-items/     # 工作事项 CRUD + reorder
+    projects/       # 作品墙 CRUD
     holdings/       # 持仓 CRUD
     profile/         # 画像层、提案、粘贴导入、回滚
     tokens/          # API token 管理
@@ -138,11 +143,12 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 
 连接成功后 Claude 可使用这些工具:
 
-- `get_profile`: 读取画像层；不传 `layers` 返回全部四层(`core/status/investing/relationship`)；可逗号指定子集。
+- `get_profile`: 读取画像层；不传 `layers` 返回全部四层(`core/status/investing/relationship`)；可逗号指定子集。作品列表请用 `get_projects`，不要把项目墙当成画像层。
 - `list_profile_layers`: 列出四层的简介与最后更新时间。
-- `search_entries`: 搜索工作事项、持仓和通用条目。
+- `get_projects`: 读取作品墙（在做 / 已上线 / 暂停），与「项目」页同源；可选 `status` 过滤。
+- `search_entries`: 搜索工作事项、作品、持仓和通用条目。
 - `get_topic_batch`: 读取 topic-radar 最新选题候选（可选 `account=lengjiao|carbon`）；与画像提案无关。
 - `propose_profile_patch`: 局部提案。`add/update/delete` 改 section 内单条；`replace_section` 整节替换（`new_content_md` 须以目标 `##` 开头；section 不存在则追加到层末）。同一调用方连续改同一层会累积到同一个 pending proposal。工具说明含主动识别提示：对话中出现稳定事实/原则/偏好变化时应主动提议，不必等用户要求「更新画像」。
 - `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。同样适用主动识别原则（整层过期或稳定变化时主动提议重写）。
 - `propose_monthly_investment_update`: 提交“全量人民币金额持仓 + 固定四段月度审计”的待确认提案。持仓必须包含 `CASH` 余额项；审计字段固定为 `conclusion`、`triggers_and_rules`、`actions`、`next_month_checks`。用户在投资页批准后，持仓与审计快照同节点生效，并自动生成 `audit-sync` 的 status 联动提案。提交后应立即再调 `propose_profile_update` 更新 status 层。
-- HTTP:`POST /api/profile/proposals`（Bearer write token）用于画像提案；`POST /api/topic-batches` 用于 topic-radar 写入首页「今日选题」（不走提案）。
+- HTTP:`POST /api/profile/proposals`（Bearer write token）用于画像提案；`POST /api/topic-batches` 用于 topic-radar 写入选题备查（不走提案、不进首页主场）。

@@ -4,6 +4,7 @@ import {
   holdings,
   entries,
   profileDoc,
+  projects,
 } from "@/lib/db/schema";
 
 export interface MarkdownFile {
@@ -74,11 +75,13 @@ export async function exportMarkdownFiles(): Promise<MarkdownFile[]> {
     holdingRows,
     entryRows,
     profileRows,
+    projectRows,
   ] = await Promise.all([
     db.select().from(workItems),
     db.select().from(holdings),
     db.select().from(entries),
     db.select().from(profileDoc),
+    db.select().from(projects),
   ]);
 
   const files: MarkdownFile[] = [
@@ -96,6 +99,7 @@ export async function exportMarkdownFiles(): Promise<MarkdownFile[]> {
   ];
 
   addSection(files, "work_items", "工作事项", "work_item", workRows, "note", "name");
+  addSection(files, "projects", "作品", "project", projectRows, "summary", "name");
   addSection(files, "holdings", "持仓", "holding", holdingRows, "thesisMd", "name");
   addSection(files, "entries", "通用条目", "entry", entryRows, "contentMd", "title");
 
