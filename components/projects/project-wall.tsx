@@ -53,22 +53,17 @@ export function ProjectWall({ initialItems }: { initialItems: Project[] }) {
 
   function pick(id: number) {
     setActiveId(id);
-    document.getElementById(`project-${id}`)?.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-    });
   }
 
   const active = items.find((item) => item.id === activeId) ?? items[0] ?? null;
-  const rest = items.filter((item) => item.id !== active?.id);
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-sm font-normal text-muted-foreground">作品墙</h1>
+          <h1 className="text-sm font-normal text-muted-foreground">作品</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            给人看，也给 AI 读。点名字，下面落到那一件。
+            给人看，也给 AI 读。点名字切换当前这一件。
           </p>
         </div>
         <Button size="sm" onClick={() => setAdding((v) => !v)}>
@@ -81,7 +76,7 @@ export function ProjectWall({ initialItems }: { initialItems: Project[] }) {
         <ProjectIndex items={items} activeId={active?.id ?? null} onPick={pick} />
       ) : (
         <p className="py-12 text-center text-sm text-muted-foreground">
-          墙是空的。加一个正在碰的作品。
+          还没有作品。加一个正在碰的。
         </p>
       )}
 
@@ -90,28 +85,13 @@ export function ProjectWall({ initialItems }: { initialItems: Project[] }) {
       )}
 
       {active ? (
-        <ProjectPoster
+        <ProjectDetail
+          key={active.id}
           item={active}
           index={items.findIndex((item) => item.id === active.id)}
-          featured
           onPatch={replace}
           onDelete={remove}
         />
-      ) : null}
-
-      {rest.length > 0 ? (
-        <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-3">
-          {rest.map((item) => (
-            <ProjectPoster
-              key={item.id}
-              item={item}
-              index={items.findIndex((row) => row.id === item.id)}
-              onSelect={() => pick(item.id)}
-              onPatch={replace}
-              onDelete={remove}
-            />
-          ))}
-        </div>
       ) : null}
     </div>
   );
@@ -168,18 +148,14 @@ function ProjectIndex({
   );
 }
 
-function ProjectPoster({
+function ProjectDetail({
   item,
   index,
-  featured = false,
-  onSelect,
   onPatch,
   onDelete,
 }: {
   item: Project;
   index: number;
-  featured?: boolean;
-  onSelect?: () => void;
   onPatch: (item: Project) => void;
   onDelete: (id: number) => void;
 }) {
@@ -189,10 +165,7 @@ function ProjectPoster({
 
   if (editing) {
     return (
-      <div
-        id={`project-${item.id}`}
-        className={cn("bg-background p-5", featured && "border-y")}
-      >
+      <div className="border-t pt-6">
         <ProjectEditor
           item={item}
           onCancel={() => setEditing(false)}
@@ -207,22 +180,11 @@ function ProjectPoster({
   }
 
   return (
-    <article
-      id={`project-${item.id}`}
-      className={cn(
-        "relative bg-background",
-        featured ? "border-y py-10 md:py-14" : "cursor-pointer p-6",
-      )}
-      onClick={onSelect}
-    >
+    <article className="relative border-t py-10 md:py-12">
       <span
         aria-hidden
-        className="pointer-events-none absolute right-4 top-2 select-none font-medium leading-none"
-        style={{
-          color: tone,
-          opacity: featured ? 0.16 : 0.12,
-          fontSize: featured ? "5.5rem" : "3.25rem",
-        }}
+        className="pointer-events-none absolute right-0 top-6 select-none text-7xl font-medium leading-none md:text-8xl"
+        style={{ color: tone, opacity: 0.16 }}
       >
         {String(index + 1).padStart(2, "0")}
       </span>
@@ -230,32 +192,21 @@ function ProjectPoster({
         {PROJECT_AREA_META[area].label}
         {item.skillRef ? ` · ${item.skillRef}` : ""}
       </p>
-      <h2
-        className={cn(
-          "mt-2 font-medium tracking-tight",
-          featured ? "text-4xl md:text-5xl" : "text-xl",
-        )}
-      >
+      <h2 className="mt-2 text-4xl font-medium tracking-tight md:text-5xl">
         {item.name}
       </h2>
       {item.summary ? (
-        <p
-          className={cn(
-            "mt-3 max-w-2xl text-sm leading-7 text-muted-foreground",
-            featured && "md:text-[15px]",
-          )}
-        >
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground md:text-[15px]">
           {item.summary}
         </p>
       ) : null}
-      <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
+      <div className="mt-8 flex flex-wrap items-center gap-4 text-sm">
         {item.url ? (
           <a
             href={item.url}
             target="_blank"
             rel="noreferrer"
             className="text-primary hover:opacity-80"
-            onClick={(e) => e.stopPropagation()}
           >
             打开 →
           </a>
@@ -266,17 +217,13 @@ function ProjectPoster({
             target="_blank"
             rel="noreferrer"
             className="text-muted-foreground hover:text-foreground"
-            onClick={(e) => e.stopPropagation()}
           >
             仓库 →
           </a>
         ) : null}
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setEditing(true);
-          }}
+          onClick={() => setEditing(true)}
           className="ml-auto text-xs text-muted-foreground hover:text-foreground"
         >
           编辑
