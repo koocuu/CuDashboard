@@ -17,6 +17,7 @@
     "seed:demo": "tsx scripts/seed-demo.ts",
     "seed:projects": "tsx scripts/seed-projects.ts",
     "sync:holdings:2026-07": "tsx scripts/sync-holdings-2026-07.ts",
+    "merge:holdings:2026-08": "tsx scripts/merge-holding-buckets-2026-08.ts",
     "migrate:profile-layers-v3": "tsx scripts/migrate-profile-layers-v3.ts"
   },
   "dependencies": {

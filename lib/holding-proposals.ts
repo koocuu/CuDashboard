@@ -10,7 +10,6 @@ import {
   allowedHoldingBuckets,
   assertSnapshotUsesAllowedBuckets,
 } from "@/lib/holding-buckets";
-import { listHoldings } from "@/lib/queries/invest";
 
 export const holdingSnapshotItemSchema = z.object({
   market: z.enum(["cn", "us", "other"]).describe("cn=A股，us=美股，other=黄金/债券/现金等"),
@@ -51,9 +50,10 @@ export async function createMonthlyInvestmentProposal(input: {
 }) {
   if (!/^\d{4}-\d{2}$/.test(input.month)) throw new Error("月份格式必须为 YYYY-MM");
   const snapshot = normalizeHoldingSnapshot(input.snapshot);
-  const current = await listHoldings();
-  // 月度提案不得隐式新建桶；status 近况由 now_md 写入，审计正文不进 status。
-  assertSnapshotUsesAllowedBuckets(snapshot, allowedHoldingBuckets(current));
+  // 只写入 holding_proposals。pending / rejected 不得改 holdings。
+  // 白名单是 CANONICAL_HOLDING_BUCKETS，不从当前持仓行推导。
+  // status 近况由 now_md 在批准时写入，审计正文不进 status。
+  assertSnapshotUsesAllowedBuckets(snapshot, allowedHoldingBuckets());
   const reviewData = storedMonthlyReviewSchema.parse(input.reviewData);
 
   await db
@@ -143,9 +143,10 @@ export function holdingSnapshotDiff(current: Holding[], snapshot: HoldingSnapsho
   return lines;
 }
 
-/** 批准完整金额快照：未列出的活跃仓位软删除；观察池不受影响。 */
+/** 批准完整金额快照：未列出的活跃仓位软删除；观察池不受影响。仅批准路径可调用。 */
 export async function applyHoldingSnapshot(snapshotInput: unknown) {
   const snapshot = normalizeHoldingSnapshot(snapshotInput);
+  assertSnapshotUsesAllowedBuckets(snapshot, allowedHoldingBuckets());
   const symbols = snapshot.map((item) => item.symbol);
   const total = snapshot.reduce((sum, item) => sum + item.amount_cny, 0);
   const now = new Date();

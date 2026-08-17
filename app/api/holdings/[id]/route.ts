@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { holdings } from "@/lib/db/schema";
+import { formatBucketSymbols, isCanonicalHoldingSymbol } from "@/lib/holding-buckets";
 
 export const runtime = "nodejs";
 
@@ -28,7 +29,7 @@ export async function PATCH(
   const patch: Partial<typeof holdings.$inferInsert> = { updatedAt: new Date() };
 
   if (typeof b.name === "string" && b.name.trim()) patch.name = b.name.trim();
-  if (typeof b.symbol === "string") patch.symbol = b.symbol.trim();
+  if (typeof b.symbol === "string") patch.symbol = b.symbol.trim().toUpperCase();
   if (b.market === "cn" || b.market === "us" || b.market === "other")
     patch.market = b.market;
   const amountCny = parseAmount(b.amountCny);
@@ -37,6 +38,23 @@ export async function PATCH(
   if (typeof b.thesisMd === "string") patch.thesisMd = b.thesisMd;
   if (typeof b.watchPriceNote === "string") patch.watchPriceNote = b.watchPriceNote;
   if (["active", "watching", "exited"].includes(b.status)) patch.status = b.status;
+
+  const existing = await db
+    .select({ symbol: holdings.symbol, status: holdings.status })
+    .from(holdings)
+    .where(and(eq(holdings.id, id), isNull(holdings.deletedAt)))
+    .limit(1);
+  if (!existing[0]) return NextResponse.json({ error: "未找到" }, { status: 404 });
+  const nextStatus = patch.status ?? existing[0].status;
+  const nextSymbol = patch.symbol ?? existing[0].symbol;
+  if (nextStatus === "active" && !isCanonicalHoldingSymbol(nextSymbol)) {
+    return NextResponse.json(
+      {
+        error: `活跃持仓必须使用大类桶 symbol。合法桶名：[${formatBucketSymbols()}]。`,
+      },
+      { status: 400 },
+    );
+  }
 
   const [item] = await db
     .update(holdings)

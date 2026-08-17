@@ -1,63 +1,40 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { Holding } from "@/lib/db/schema";
 import {
   allowedHoldingBuckets,
   assertSnapshotUsesAllowedBuckets,
+  formatBucketSymbols,
   holdingStructureChurn,
 } from "./holding-buckets";
 
-function holding(symbol: string, name: string): Holding {
-  return {
-    id: 1,
-    market: "cn",
-    symbol,
-    name,
-    amountCny: 1,
-    positionPct: 0,
-    costNote: "",
-    thesisMd: "",
-    status: "active",
-    watchPriceNote: "",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
-  };
-}
-
-const current = [
-  holding("CN-CPO", "A股CPO"),
-  holding("CN-MEM", "A股存储"),
-  holding("CASH", "现金"),
-];
-
-test("eight-bucket style snapshot passes", () => {
-  const buckets = allowedHoldingBuckets(current);
+test("whitelist is the frozen eight buckets, not current holdings", () => {
+  const buckets = allowedHoldingBuckets();
+  assert.equal(formatBucketSymbols(buckets), "CN-CPO, CN-MEM, CN-EQUIP, US-SEMI, US-MEM, QQQ, GOLD, CASH");
   assert.doesNotThrow(() =>
     assertSnapshotUsesAllowedBuckets(
-      [
-        { symbol: "CN-CPO" },
-        { symbol: "CN-MEM" },
-        { symbol: "CASH" },
-      ],
-      buckets,
+      buckets.map((bucket) => ({ symbol: bucket.symbol })),
     ),
   );
 });
 
-test("stock-level symbols are rejected with the legal list", () => {
-  const buckets = allowedHoldingBuckets(current);
+test("stock-level symbols are rejected with the legal list even if they are in holdings", () => {
   assert.throws(
-    () => assertSnapshotUsesAllowedBuckets([{ symbol: "US-NVDA" }, { symbol: "CASH" }], buckets),
-    /symbol "US-NVDA" 不在允许的桶名列表内[\s\S]*CN-CPO, CN-MEM, CASH/,
+    () => assertSnapshotUsesAllowedBuckets([{ symbol: "US-NVDA" }, { symbol: "CASH" }]),
+    /symbol "US-NVDA" 不在允许的桶名列表内[\s\S]*CN-CPO, CN-MEM, CN-EQUIP, US-SEMI, US-MEM, QQQ, GOLD, CASH/,
+  );
+  assert.throws(
+    () => assertSnapshotUsesAllowedBuckets([{ symbol: "A-CPO" }, { symbol: "CASH" }]),
+    /symbol "A-CPO" 不在允许的桶名列表内/,
   );
 });
 
 test("structure churn counts adds and removes", () => {
-  const churn = holdingStructureChurn(current, [
-    { symbol: "CN-CPO" },
-    { symbol: "GOLD" },
-  ]);
+  const current = [
+    { symbol: "CN-CPO", status: "active" },
+    { symbol: "CN-MEM", status: "active" },
+    { symbol: "CASH", status: "active" },
+  ];
+  const churn = holdingStructureChurn(current, [{ symbol: "CN-CPO" }, { symbol: "GOLD" }]);
   assert.equal(churn.added, 1);
   assert.equal(churn.removed, 2);
   assert.equal(churn.total, 3);

@@ -12,7 +12,6 @@ import {
   proposalSnapshot,
 } from "@/lib/holding-proposals";
 import { allowedHoldingBuckets, assertSnapshotUsesAllowedBuckets } from "@/lib/holding-buckets";
-import { listHoldings } from "@/lib/queries/invest";
 import { isProposalStale, staleApproveError } from "@/lib/proposal-freshness";
 import { renderMonthlyReview } from "@/lib/invest-review-template";
 import { upsertInvestReview } from "@/lib/queries/invest-reviews";
@@ -54,8 +53,7 @@ export async function POST(
     let websiteSync: { ok: boolean; warning?: string; path?: string } | undefined;
     try {
       const snapshot = proposalSnapshot(proposal.snapshot);
-      const current = await listHoldings();
-      assertSnapshotUsesAllowedBuckets(snapshot, allowedHoldingBuckets(current));
+      assertSnapshotUsesAllowedBuckets(snapshot, allowedHoldingBuckets());
       await applyHoldingSnapshot(snapshot);
       if (proposal.month && proposal.reviewData) {
         const reviewData = proposalReviewData(proposal.reviewData);

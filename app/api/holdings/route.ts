@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { holdings } from "@/lib/db/schema";
+import { formatBucketSymbols, isCanonicalHoldingSymbol } from "@/lib/holding-buckets";
 import { listHoldings } from "@/lib/queries/invest";
 
 export const runtime = "nodejs";
@@ -25,12 +26,22 @@ export async function POST(req: NextRequest) {
     ? b.status
     : "active";
 
+  const symbol = typeof b.symbol === "string" ? b.symbol.trim().toUpperCase() : "";
+  if (status === "active" && !isCanonicalHoldingSymbol(symbol)) {
+    return NextResponse.json(
+      {
+        error: `活跃持仓必须使用大类桶 symbol。合法桶名：[${formatBucketSymbols()}]。观察池可以用任意代号。`,
+      },
+      { status: 400 },
+    );
+  }
+
   const [item] = await db
     .insert(holdings)
     .values({
       name,
       market,
-      symbol: typeof b.symbol === "string" ? b.symbol.trim() : "",
+      symbol,
       amountCny: parseAmount(b.amountCny),
       costNote: typeof b.costNote === "string" ? b.costNote : "",
       thesisMd: typeof b.thesisMd === "string" ? b.thesisMd : "",

@@ -144,12 +144,11 @@ const mcpHandler = createMcpHandler(
       {
         title: "Get Holding Buckets",
         description:
-          "读取当前生效的持仓大类桶（symbol + 中文名）。提交 propose_monthly_investment_update 前必须先调本工具，按返回的 symbol 合并仓位；不要按单只基金或个股拆 item。",
+          "读取固定的持仓大类桶白名单（symbol + 中文名）。提交 propose_monthly_investment_update 前必须先调本工具，按返回的 symbol 合并仓位；不要按单只基金或个股拆 item。白名单不随当前 holdings 行变化。",
         inputSchema: {},
       },
       async () => {
-        const current = await listHoldings();
-        return textResult(formatBucketsMarkdown(allowedHoldingBuckets(current)));
+        return textResult(formatBucketsMarkdown(allowedHoldingBuckets()));
       },
     );
 

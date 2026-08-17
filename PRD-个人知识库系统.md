@@ -1,7 +1,7 @@
 # PRD v2(定稿):个人画像 RAG + 人生状态 Dashboard(代号:Console)
 
 版本:v2.2(取代 v1.0,范围大幅收缩,以本文档为准)
-实施口径更新:2026-08-17(近况只留一份；月度持仓必须用当前大类桶；审计正文不进 status)
+实施口径更新:2026-08-17(近况只留一份；持仓大类桶为固定白名单 CN-CPO 等 8 个；审计正文不进 status)
 面向读者:AI 开发工具(Codex / Claude Code / Cursor)及开发者本人
 
 ---
@@ -169,7 +169,7 @@ PROFILE_UPDATE>>>
 
 解析:提取包裹块;`---` 前为元信息(layer 必填);格式非法给出具体错误提示。
 
-3. **MCP Server(Phase 3)**:`get_profile` / `list_profile_layers` / `get_projects` / `get_holding_buckets` / `search_entries` / `propose_profile_patch` / `propose_profile_update` / `propose_monthly_investment_update` / `get_topic_batch`。画像和投资写入均先创建待确认提案，返回文本含审批直达链接。`get_projects` 只读作品墙，不写入画像。`get_holding_buckets` 返回当前活跃大类桶；月度持仓 item 必须用这些 symbol，禁止按基金/个股拆分，也不许通过月度提案新建桶。`propose_monthly_investment_update` 一次提交持仓、四段审计和 `now_md`（策展过的公开近况，不是从持仓/台账自动生成）；投资页一键批准后同一节点写入持仓、审计与 status。审计正文只留投资复盘，不写入 status。月度之外改近况仍走 status 提案。`propose_profile_patch` 用于按二级标题和条目标题做局部增删改；同一调用方连续修改同一层时累积到同一个 pending proposal，其他来源已有 pending 时拒绝自动合并。画像写入工具的 description 含「主动识别」指令与 status 公开写作约束。
+3. **MCP Server(Phase 3)**:`get_profile` / `list_profile_layers` / `get_projects` / `get_holding_buckets` / `search_entries` / `propose_profile_patch` / `propose_profile_update` / `propose_monthly_investment_update` / `get_topic_batch`。画像和投资写入均先创建待确认提案，返回文本含审批直达链接。`get_projects` 只读作品墙，不写入画像。`get_holding_buckets` 返回固定大类桶白名单（`CN-CPO` / `CN-MEM` / `CN-EQUIP` / `US-SEMI` / `US-MEM` / `QQQ` / `GOLD` / `CASH`），不从当前 holdings 行推导；月度持仓必须用这些 symbol，禁止按基金/个股拆分，也不许通过月度提案新建桶。pending / rejected 提案不写 holdings，只有批准才写。`propose_monthly_investment_update` 一次提交持仓、四段审计和 `now_md`（策展过的公开近况，不是从持仓/台账自动生成）；投资页一键批准后同一节点写入持仓、审计与 status。审计正文只留投资复盘，不写入 status。月度之外改近况仍走 status 提案。`propose_profile_patch` 用于按二级标题和条目标题做局部增删改；同一调用方连续修改同一层时累积到同一个 pending proposal，其他来源已有 pending 时拒绝自动合并。画像写入工具的 description 含「主动识别」指令与 status 公开写作约束。
 
 ### 5.6 确认流程
 
@@ -203,7 +203,7 @@ PROFILE_UPDATE>>>
 - 按市场分组列表:名称/代号、折人民币金额、自动占总资产比例、买入逻辑
 - 总资产包含显式现金余额;环图切片合计 100%,中心显示非现金已投资比例
 - 观察池分区(status=watching):记录想买理由,供事后验证冲动
-- 名称和金额可手动修正;正式月更走 MCP 固定模板提案。item 必须是当前活跃大类桶（与 `get_holding_buckets` 一致），同一桶内基金/个股合并，拆分写进 `thesis_md`。新增桶只能在投资页手动建仓
+- 名称和金额可手动修正;正式月更走 MCP 固定模板提案。item 必须是固定大类桶（`get_holding_buckets` / `CANONICAL_HOLDING_BUCKETS`），同一桶内基金/个股合并，拆分写进 `thesis_md`。白名单不随持仓行变化；新增桶要改代码白名单，不能靠月度提案或随手加仓
 - 月度审计固定四段:本月结论、触发与纪律、本月动作、下月核验；同一次 MCP 还提交 `now_md` 公开近况。投资页批准后持仓、审计快照与 status 同一节点生效。status 近况的月度写者是 `now_md`，不把审计清单搬进近况
 
 ### 6.4 作品墙

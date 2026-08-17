@@ -150,6 +150,6 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 - `get_topic_batch`: 读取 topic-radar 最新选题候选（可选 `account=lengjiao|carbon`）；与画像提案无关。
 - `propose_profile_patch`: 局部提案。`add/update/delete` 改 section 内单条；`replace_section` 整节替换（`new_content_md` 须以目标 `##` 开头；section 不存在则追加到层末）。同一调用方连续改同一层会累积到同一个 pending proposal。工具说明含主动识别提示：对话中出现稳定事实/原则/偏好变化时应主动提议，不必等用户要求「更新画像」。
 - `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。同样适用主动识别原则（整层过期或稳定变化时主动提议重写）。
-- `get_holding_buckets`: 当前持仓大类桶 symbol。月度提案必须按此合并，禁止按基金/个股拆 item。
+- `get_holding_buckets`: 固定 8 个大类桶 symbol（`CN-CPO` / `CN-MEM` / `CN-EQUIP` / `US-SEMI` / `US-MEM` / `QQQ` / `GOLD` / `CASH`）。月度提案必须按此合并，禁止按基金/个股拆 item。白名单不随当前持仓行变化。
 - `propose_monthly_investment_update`: 提交全量持仓 + 四段审计 + `now_md` 公开近况。持仓 symbol 必须在 `get_holding_buckets` 白名单内。`now_md` 由对话策展，不是从持仓自动生成。批准后持仓、审计与 status 同节点生效。审计正文不进 status。返回文本含审批直达链接。
 - HTTP:`POST /api/profile/proposals`（Bearer write token）用于画像提案；`POST /api/topic-batches` 用于 topic-radar 写入选题备查（不走提案、不进首页主场）。
