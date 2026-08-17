@@ -4,9 +4,7 @@ import { QuickAdd } from "@/components/quick-add";
 import { MarkdownLite } from "@/components/ui/markdown-lite";
 import { WorkBoard } from "@/components/work/work-board";
 import type { BackupRun } from "@/lib/db/schema";
-import { buildPositionSlices, donutGradient } from "@/lib/invest-chart";
 import { latestBackupRun } from "@/lib/queries/backup";
-import { investStats, listHoldings } from "@/lib/queries/invest";
 import { getAllLayers, listProposals } from "@/lib/queries/profile";
 import { listWorkItems } from "@/lib/queries/work";
 import { listHoldingProposals } from "@/lib/holding-proposals";
@@ -38,11 +36,9 @@ export default async function DashboardPage() {
     }
   }
 
-  const [workItems, invest, holdings, layers, proposals, backup, holdingProposals] =
+  const [workItems, layers, proposals, backup, holdingProposals] =
     await Promise.all([
       listWorkItems().catch(logQueryError("work_items", [])),
-      investStats().catch(logQueryError("invest_stats", null)),
-      listHoldings().catch(logQueryError("holdings", [])),
       getAllLayers().catch(logQueryError("profile_layers", [])),
       listProposals().catch(logQueryError("proposals", [])),
       latestBackupRun().catch(logQueryError("backup_runs", null)),
@@ -62,7 +58,6 @@ export default async function DashboardPage() {
   const statusStale = statusAgeDays !== null && statusAgeDays > 35;
   const pending = proposals.filter((p) => p.status === "pending");
   const pendingHoldings = holdingProposals.filter((p) => p.status === "pending");
-  const { slices, total } = buildPositionSlices(holdings, 4);
   const categoryOptions = Array.from(
     new Set(
       workItems
@@ -162,49 +157,6 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          <section className="border-t pt-4">
-            <Link href="/invest" className="block">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-normal text-muted-foreground">
-                  仓位
-                </h2>
-                <span className="text-xs text-muted-foreground">
-                  {pendingHoldings.length > 0
-                    ? `待确认 ${pendingHoldings.length} →`
-                    : "打开 →"}
-                </span>
-              </div>
-
-              <div className="mt-4 flex items-center gap-5">
-                <PositionDonut slices={slices} total={total} />
-                <div className="min-w-0 flex-1 space-y-2">
-                  {slices.map((slice) => (
-                    <div
-                      key={slice.key}
-                      className="flex items-center gap-2 text-xs"
-                    >
-                      <span
-                        className="h-2.5 w-2.5 rounded-sm"
-                        style={{ backgroundColor: slice.color }}
-                      />
-                      <span className="truncate">{slice.label}</span>
-                      <span className="ml-auto font-mono text-muted-foreground">
-                        {slice.value}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {invest && (
-                <p className="mt-4 text-xs text-muted-foreground">
-                  持仓 {String(invest.holdingCount).padStart(2, "0")} · 观察{" "}
-                  {String(invest.watchingCount).padStart(2, "0")}
-                </p>
-              )}
-            </Link>
-          </section>
-
           <BackupStatus
             backup={backup}
             enabled={Boolean(
@@ -238,17 +190,6 @@ export default async function DashboardPage() {
           </section>
         </main>
       </div>
-
-      <p className="border-t pt-3 text-[11px] text-muted-foreground">
-        <Link href="/invest" className="hover:text-foreground">
-          投资
-          {pendingHoldings.length > 0 ? ` ${pendingHoldings.length}` : ""}
-        </Link>
-        <span className="mx-2">·</span>
-        <Link href="/topics" className="hover:text-foreground">
-          选题备查
-        </Link>
-      </p>
     </div>
   );
 }
@@ -305,32 +246,11 @@ function BackupStatus({
   );
 }
 
-function PositionDonut({
-  slices,
-  total,
-}: {
-  slices: ReturnType<typeof buildPositionSlices>["slices"];
-  total: number;
-}) {
-  return (
-    <div
-      className="grid h-28 w-28 shrink-0 place-items-center rounded-full"
-      style={{ background: donutGradient(slices) }}
-      aria-label="仓位结构环形图"
-    >
-      <div className="grid h-[68px] w-[68px] place-items-center content-center rounded-full bg-background">
-        <span className="text-[10px] text-muted-foreground">已投</span>
-        <span className="font-mono text-sm text-foreground">{total}%</span>
-      </div>
-    </div>
-  );
-}
-
 function splitStatusPreview(markdown: string) {
   const cleaned = removeStatusTitle(markdown);
   const sections = splitMarkdownSections(cleaned);
-  const preview = sections.slice(0, 2).join("\n\n");
-  const rest = sections.slice(2).join("\n\n");
+  const preview = sections.slice(0, 1).join("\n\n");
+  const rest = sections.slice(1).join("\n\n");
   return {
     preview: preview || cleaned,
     rest,

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "今日" },
   { href: "/projects", label: "项目" },
+  { href: "/invest", label: "投资" },
   { href: "/profile", label: "画像" },
 ] as const;
 
@@ -29,7 +30,11 @@ export function AppTopNav({
           {NAV_ITEMS.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const showBadge = item.href === "/profile" && proposalCount > 0;
+            const showBadge =
+              (item.href === "/profile" && proposalCount > 0) ||
+              (item.href === "/invest" && holdingProposalCount > 0);
+            const badgeCount =
+              item.href === "/profile" ? proposalCount : holdingProposalCount;
 
             return (
               <Link
@@ -45,25 +50,13 @@ export function AppTopNav({
                 {item.label}
                 {showBadge && (
                   <span className="absolute -right-1 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
-                    {proposalCount}
+                    {badgeCount}
                   </span>
                 )}
               </Link>
             );
           })}
         </nav>
-        {holdingProposalCount > 0 ? (
-          <Link
-            href="/invest"
-            className="relative rounded-lg px-2.5 py-1.5 text-sm text-primary hover:opacity-80"
-          >
-            投资
-            <span className="absolute -right-1 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
-              {holdingProposalCount}
-            </span>
-          </Link>
-        ) : null}
-
         {statsLabel && (
           <span className="hidden truncate text-[11px] text-muted-foreground md:inline">
             {statsLabel}
@@ -71,7 +64,20 @@ export function AppTopNav({
         )}
       </div>
 
-      <LogoutButton />
+      <div className="flex items-center gap-3">
+        <Link
+          href="/topics"
+          className={cn(
+            "text-[11px] transition-colors",
+            pathname.startsWith("/topics")
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          选题
+        </Link>
+        <LogoutButton />
+      </div>
     </header>
   );
 }
