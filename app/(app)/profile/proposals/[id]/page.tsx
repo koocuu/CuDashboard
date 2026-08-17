@@ -9,6 +9,7 @@ import { lineDiff } from "@/lib/diff";
 import { CLEANUP_NOTE } from "@/lib/profile-content-cleaner";
 import type { ProfileLayer } from "@/lib/db/schema";
 import { ProposalActions } from "@/components/profile/proposal-actions";
+import { isProposalStale } from "@/lib/proposal-freshness";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function ProposalDetail({
   const current = await getLayer(proposal.layer as ProfileLayer);
   const diff = lineDiff(current, proposal.proposedContentMd);
   const pending = proposal.status === "pending";
+  const stale = pending && isProposalStale(proposal.createdAt);
   const cleanedDistributionWrapper = proposal.diffSummary.includes(CLEANUP_NOTE);
 
   return (
@@ -81,11 +83,15 @@ export default async function ProposalDetail({
         ))}
       </div>
 
-      {pending ? (
+      {pending && !stale ? (
         <ProposalActions
           id={proposal.id}
           initialContent={proposal.proposedContentMd}
         />
+      ) : pending && stale ? (
+        <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+          该提案已超过 7 天，数据可能已过期，不能直接批准。请让 AI 按当前内容重新提交。
+        </p>
       ) : (
         <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
           该提案已 {proposal.status === "approved" ? "合并" : "拒绝"}。

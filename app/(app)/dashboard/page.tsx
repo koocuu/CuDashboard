@@ -9,6 +9,7 @@ import { latestBackupRun } from "@/lib/queries/backup";
 import { investStats, listHoldings } from "@/lib/queries/invest";
 import { getAllLayers, listProposals } from "@/lib/queries/profile";
 import { listWorkItems } from "@/lib/queries/work";
+import { listHoldingProposals } from "@/lib/holding-proposals";
 import { formatDate, formatRelativeTime } from "@/lib/utils";
 import {
   WORK_CATEGORY_ALL,
@@ -37,7 +38,7 @@ export default async function DashboardPage() {
     }
   }
 
-  const [workItems, invest, holdings, layers, proposals, backup] =
+  const [workItems, invest, holdings, layers, proposals, backup, holdingProposals] =
     await Promise.all([
       listWorkItems().catch(logQueryError("work_items", [])),
       investStats().catch(logQueryError("invest_stats", null)),
@@ -45,6 +46,7 @@ export default async function DashboardPage() {
       getAllLayers().catch(logQueryError("profile_layers", [])),
       listProposals().catch(logQueryError("proposals", [])),
       latestBackupRun().catch(logQueryError("backup_runs", null)),
+      listHoldingProposals().catch(logQueryError("holding_proposals", [])),
     ]);
 
   const statusDoc = layers.find((layer) => layer.layer === "status");
@@ -59,6 +61,7 @@ export default async function DashboardPage() {
     : null;
   const statusStale = statusAgeDays !== null && statusAgeDays > 35;
   const pending = proposals.filter((p) => p.status === "pending");
+  const pendingHoldings = holdingProposals.filter((p) => p.status === "pending");
   const { slices, total } = buildPositionSlices(holdings, 4);
   const categoryOptions = Array.from(
     new Set(
@@ -144,15 +147,19 @@ export default async function DashboardPage() {
             )}
           </section>
 
-          {pending.length > 0 && (
-            <Link
-              href="/profile/proposals"
-              className="block border-y py-2"
-            >
-              <span className="text-sm text-primary">
-                待确认 {pending.length} 条 →
-              </span>
-            </Link>
+          {(pending.length > 0 || pendingHoldings.length > 0) && (
+            <div className="space-y-1 border-y py-2 text-sm text-primary">
+              {pending.length > 0 ? (
+                <Link href="/profile/proposals" className="block hover:opacity-80">
+                  画像待确认 {pending.length} 条 →
+                </Link>
+              ) : null}
+              {pendingHoldings.length > 0 ? (
+                <Link href="/invest" className="block hover:opacity-80">
+                  投资待确认 {pendingHoldings.length} 条 →
+                </Link>
+              ) : null}
+            </div>
           )}
 
           <section className="border-t pt-4">
@@ -161,7 +168,11 @@ export default async function DashboardPage() {
                 <h2 className="text-sm font-normal text-muted-foreground">
                   仓位
                 </h2>
-                <span className="text-xs text-muted-foreground">打开 →</span>
+                <span className="text-xs text-muted-foreground">
+                  {pendingHoldings.length > 0
+                    ? `待确认 ${pendingHoldings.length} →`
+                    : "打开 →"}
+                </span>
               </div>
 
               <div className="mt-4 flex items-center gap-5">
@@ -231,6 +242,7 @@ export default async function DashboardPage() {
       <p className="border-t pt-3 text-[11px] text-muted-foreground">
         <Link href="/invest" className="hover:text-foreground">
           投资
+          {pendingHoldings.length > 0 ? ` ${pendingHoldings.length}` : ""}
         </Link>
         <span className="mx-2">·</span>
         <Link href="/topics" className="hover:text-foreground">

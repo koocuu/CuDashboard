@@ -5,6 +5,7 @@ import { profileProposals } from "@/lib/db/schema";
 import { saveLayer, isValidLayer } from "@/lib/queries/profile";
 import { statusContentForNow } from "@/lib/status-sections";
 import { syncPublicLayerToWebsite } from "@/lib/website-sync";
+import { isProposalStale, staleApproveError } from "@/lib/proposal-freshness";
 
 export const runtime = "nodejs";
 
@@ -49,6 +50,9 @@ export async function POST(
   }
 
   if (action === "approve") {
+    if (isProposalStale(proposal.createdAt)) {
+      return NextResponse.json({ error: staleApproveError() }, { status: 409 });
+    }
     if (!isValidLayer(proposal.layer)) {
       return NextResponse.json({ error: "提案层非法" }, { status: 400 });
     }

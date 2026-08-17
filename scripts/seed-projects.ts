@@ -1,5 +1,4 @@
 import "dotenv/config";
-import { isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { projects, type ProjectArea } from "@/lib/db/schema";
 
@@ -77,21 +76,21 @@ const seed: Array<{
 ];
 
 async function main() {
-  const existing = await db
-    .select({ slug: projects.slug })
-    .from(projects)
-    .where(isNull(projects.deletedAt));
-  const have = new Set(existing.map((row) => row.slug));
   let inserted = 0;
 
   for (const item of seed) {
-    if (have.has(item.slug)) continue;
-    await db.insert(projects).values(item);
-    inserted += 1;
-    console.log(`+ ${item.slug}`);
+    const insertedRows = await db
+      .insert(projects)
+      .values(item)
+      .onConflictDoNothing({ target: projects.slug })
+      .returning({ slug: projects.slug });
+    if (insertedRows[0]) {
+      inserted += 1;
+      console.log(`+ ${item.slug}`);
+    }
   }
 
-  console.log(`✓ 作品墙种子：新增 ${inserted}，已有 ${have.size}`);
+  console.log(`✓ 作品墙种子：新增 ${inserted}，已有 ${seed.length - inserted}`);
 }
 
 main().catch((err) => {

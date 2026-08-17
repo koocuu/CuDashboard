@@ -4,6 +4,7 @@ import { LiveRefresh } from "@/components/live-refresh";
 import { isAuthenticated } from "@/lib/auth/session";
 import { getLiveRevision } from "@/lib/live-revision";
 import { pendingProposalCount } from "@/lib/queries/profile";
+import { pendingHoldingProposalCount } from "@/lib/holding-proposals";
 import { workStats } from "@/lib/queries/work";
 import { formatDate } from "@/lib/utils";
 
@@ -20,11 +21,13 @@ export default async function AppLayout({
   }
 
   let proposalCount = 0;
+  let holdingProposalCount = 0;
   let stats: Awaited<ReturnType<typeof workStats>> | null = null;
   let initialRevision: string | null = null;
   try {
-    [proposalCount, stats] = await Promise.all([
+    [proposalCount, holdingProposalCount, stats] = await Promise.all([
       pendingProposalCount(),
+      pendingHoldingProposalCount(),
       workStats(),
     ]);
   } catch {
@@ -52,7 +55,11 @@ export default async function AppLayout({
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col px-4 sm:px-6 xl:px-8">
       <LiveRefresh initialRevision={initialRevision} />
-      <AppTopNav proposalCount={proposalCount} statsLabel={statsLabel} />
+      <AppTopNav
+        proposalCount={proposalCount}
+        holdingProposalCount={holdingProposalCount}
+        statsLabel={statsLabel}
+      />
       <main className="flex-1 pb-6 pt-4">{children}</main>
     </div>
   );

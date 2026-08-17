@@ -54,7 +54,7 @@ npm run dev
 - 画像:四层 Markdown(core/status/investing/relationship)、完整版/通用版/自定义分发、一键复制、版本历史、回滚；status 是唯一公开近况，与 /now 同源；超过 35 天未更新时首页眉标提示
 - Proposal:REST/write token、粘贴更新块、MCP 写入通道,全部需用户 diff 确认
 - Token:read/write token 生成、吊销、最后使用时间
-- MCP:`get_profile` / `list_profile_layers` / `get_projects` / `search_entries` / `propose_profile_update` / `propose_profile_patch` / `propose_monthly_investment_update` / `get_topic_batch`（月度工具同时提交近况，不必再调 status 更新）
+- MCP:`get_profile` / `list_profile_layers` / `get_projects` / `get_holding_buckets` / `search_entries` / `propose_profile_update` / `propose_profile_patch` / `propose_monthly_investment_update` / `get_topic_batch`
 - 导入导出:`/api/import` JSON 导入,`/api/export` 全量 Markdown ZIP
 - 备份:Vercel Cron 每日全量 Markdown 快照到 GitHub 私库;未配置视为未启用,启用后失败或 48 小时未成功才告警
 - Demo seed:`npm run seed:demo` 导入 `console-seed-data.md` 对应的工作事项、持仓、画像层和一条 pending proposal
@@ -150,5 +150,6 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 - `get_topic_batch`: 读取 topic-radar 最新选题候选（可选 `account=lengjiao|carbon`）；与画像提案无关。
 - `propose_profile_patch`: 局部提案。`add/update/delete` 改 section 内单条；`replace_section` 整节替换（`new_content_md` 须以目标 `##` 开头；section 不存在则追加到层末）。同一调用方连续改同一层会累积到同一个 pending proposal。工具说明含主动识别提示：对话中出现稳定事实/原则/偏好变化时应主动提议，不必等用户要求「更新画像」。
 - `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。同样适用主动识别原则（整层过期或稳定变化时主动提议重写）。
-- `propose_monthly_investment_update`: 提交全量持仓 + 四段审计 + `now_md` 公开近况。持仓必须包含 `CASH`。`now_md` 由本轮对话策展（先读 `get_profile` / `get_projects`），不是从持仓自动生成；须可公开。用户在投资页批准后，持仓、审计与 status（今日 + /now）同节点生效。不必再调 `propose_profile_update` 写 status。
+- `get_holding_buckets`: 当前持仓大类桶 symbol。月度提案必须按此合并，禁止按基金/个股拆 item。
+- `propose_monthly_investment_update`: 提交全量持仓 + 四段审计 + `now_md` 公开近况。持仓 symbol 必须在 `get_holding_buckets` 白名单内。`now_md` 由对话策展，不是从持仓自动生成。批准后持仓、审计与 status 同节点生效。审计正文不进 status。返回文本含审批直达链接。
 - HTTP:`POST /api/profile/proposals`（Bearer write token）用于画像提案；`POST /api/topic-batches` 用于 topic-radar 写入选题备查（不走提案、不进首页主场）。

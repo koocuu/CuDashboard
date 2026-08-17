@@ -7,12 +7,19 @@ import { listInvestReviews } from "@/lib/queries/invest-reviews";
 
 export const dynamic = "force-dynamic";
 
-export default async function InvestPage() {
-  const [holdings, reviews, holdingProposals] = await Promise.all([
-    listHoldings(),
-    listInvestReviews(),
-    listHoldingProposals(),
-  ]);
+export default async function InvestPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ proposal?: string }>;
+}) {
+  const [{ proposal: proposalParam }, holdings, reviews, holdingProposals] =
+    await Promise.all([
+      searchParams,
+      listHoldings(),
+      listInvestReviews(),
+      listHoldingProposals(),
+    ]);
+  const highlightId = Number(proposalParam);
 
   return (
     <div className="space-y-5">
@@ -21,6 +28,7 @@ export default async function InvestPage() {
       <HoldingProposalPanel
         proposals={holdingProposals}
         currentHoldings={holdings}
+        highlightId={Number.isInteger(highlightId) ? highlightId : null}
       />
       <MonthlyReviewPanel initialReviews={reviews} />
     </div>

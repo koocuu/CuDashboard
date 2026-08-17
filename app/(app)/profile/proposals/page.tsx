@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listProposals } from "@/lib/queries/profile";
 import { LAYER_META } from "@/lib/profile-meta";
+import { isProposalStale } from "@/lib/proposal-freshness";
 import { formatDate } from "@/lib/utils";
 import type { ProfileLayer } from "@/lib/db/schema";
 
@@ -32,7 +33,10 @@ export default async function ProposalsPage() {
 
       <div className="space-y-2">
         {proposals.map((p) => {
-          const st = STATUS_LABEL[p.status] ?? STATUS_LABEL.pending;
+          const stale = p.status === "pending" && isProposalStale(p.createdAt);
+          const st = stale
+            ? { text: "已过期", cls: "text-muted-foreground" }
+            : (STATUS_LABEL[p.status] ?? STATUS_LABEL.pending);
           return (
             <Link
               key={p.id}
@@ -52,6 +56,7 @@ export default async function ProposalsPage() {
               </p>
               <p className="mt-1 text-xs text-muted-foreground/70">
                 {p.source} · {p.sourceName || "—"} · {formatDate(p.createdAt)}
+                {stale ? " · 数据可能已过期，不能直接批准" : ""}
               </p>
             </Link>
           );

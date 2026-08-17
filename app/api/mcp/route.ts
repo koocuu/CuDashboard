@@ -22,6 +22,13 @@ import {
   MONTHLY_NOW_SOURCE_RULE,
   STATUS_PUBLIC_WRITE_RULE,
 } from "@/lib/status-sections";
+import {
+  HOLDING_BUCKET_RULE,
+  allowedHoldingBuckets,
+  formatBucketsMarkdown,
+  holdingStructureChurn,
+} from "@/lib/holding-buckets";
+import { holdingProposalUrl, profileProposalUrl } from "@/lib/app-origin";
 import { createProfilePatchProposal } from "@/lib/profile-patch-proposals";
 import { LAYER_META, LAYER_ORDER } from "@/lib/profile-meta";
 import { PROFILE_LAYERS, type ProfileLayer } from "@/lib/db/schema";
@@ -133,6 +140,20 @@ const mcpHandler = createMcpHandler(
     );
 
     server.registerTool(
+      "get_holding_buckets",
+      {
+        title: "Get Holding Buckets",
+        description:
+          "读取当前生效的持仓大类桶（symbol + 中文名）。提交 propose_monthly_investment_update 前必须先调本工具，按返回的 symbol 合并仓位；不要按单只基金或个股拆 item。",
+        inputSchema: {},
+      },
+      async () => {
+        const current = await listHoldings();
+        return textResult(formatBucketsMarkdown(allowedHoldingBuckets(current)));
+      },
+    );
+
+    server.registerTool(
       "get_topic_batch",
       {
         title: "Get Topic Batch",
@@ -170,7 +191,9 @@ const mcpHandler = createMcpHandler(
       {
         title: "Propose Monthly Investment Update",
         description:
-          "提交一份月度更新提案：全量人民币金额持仓 + 四段月度审计 + 一份可公开的近期状态。工具只创建待确认提案；用户在 dashboard 投资页批准后，系统才同步持仓、固化该月审计快照，并把 now_md 写入 status（今日与网站 /now 同一份）。holdings 必须包含全部资产并显式包含 symbol=CASH 的现金/余额；未列出的旧活跃仓位会被移出。需要 write 权限。" +
+          "提交一份月度更新提案：全量人民币金额持仓 + 四段月度审计 + 一份可公开的近期状态。工具只创建待确认提案；用户在 dashboard 投资页批准后，系统才同步持仓、固化该月审计快照，并把 now_md 写入 status（今日与网站 /now 同一份）。审计正文只留在投资复盘，不写入 status；status 近况的月度写者是 now_md，日常改近况走 propose_profile_patch / propose_profile_update。holdings 必须包含全部资产并显式包含 symbol=CASH 的现金/余额；未列出的旧活跃仓位会被移出。需要 write 权限。" +
+          HOLDING_BUCKET_RULE +
+          " " +
           MONTHLY_NOW_SOURCE_RULE +
           " " +
           STATUS_PUBLIC_WRITE_RULE +
@@ -183,7 +206,9 @@ const mcpHandler = createMcpHandler(
           holdings: z
             .array(holdingSnapshotItemSchema)
             .min(1)
-            .describe("当前全部资产的完整快照。填写 amount_cny，不填写比例；必须包含现金/余额。"),
+            .describe(
+              "当前全部资产的完整快照。填写 amount_cny，不填写比例；必须包含现金/余额。item 必须是 get_holding_buckets 返回的大类桶，禁止按基金/个股拆分。",
+            ),
           review: monthlyReviewDataSchema.describe(
             "固定四段审计：conclusion、triggers_and_rules、actions、next_month_checks。actions 必须区分建议与已执行。这些写在投资复盘里，不要原样贴进 now_md。",
           ),
@@ -217,8 +242,13 @@ const mcpHandler = createMcpHandler(
                 ? extra.authInfo.extra.tokenName
                 : "mcp",
           });
+          const churn = holdingStructureChurn(current, snapshot);
+          const warning =
+            churn.total > 2
+              ? ` 警告：本次提案包含 ${churn.total} 项 item 结构变动（新增 ${churn.added}、移出 ${churn.removed}），请确认是否为有意的分类重构而非粒度错误。`
+              : "";
           return textResult(
-            `已创建 ${month} 月度提案 #${proposal.id}：${diff.join("；")}。请用户在 dashboard 投资页确认近况是否可公开；批准后持仓、月度审计与近期状态（今日 + /now）同一节点生效。不必再调 propose_profile_update 写 status。`,
+            `已创建 ${month} 月度提案 #${proposal.id}：${diff.join("；")}。${warning}审批链接：${holdingProposalUrl(proposal.id)} 。批准后持仓、月度审计与近期状态（今日 + /now）同一节点生效。不必再调 propose_profile_update 写 status。`,
           );
         } catch (error) {
           return textResult(
@@ -298,7 +328,7 @@ const mcpHandler = createMcpHandler(
               ? `整节替换「${result.patch.section}」`
               : `在「${result.patch.section}」中${operation === "add" ? "新增" : operation === "update" ? "修改" : "删除"}「${result.patch.entryTitle}」`;
           return textResult(
-            `${action}待确认画像提案 #${result.proposal.id}：${detail}。请用户在 dashboard 查看累计 diff 并批准后生效。`,
+            `${action}待确认画像提案 #${result.proposal.id}：${detail}。审批链接：${profileProposalUrl(result.proposal.id)}`,
           );
         } catch (error) {
           return textResult(
@@ -350,7 +380,7 @@ const mcpHandler = createMcpHandler(
         });
 
         return textResult(
-          `已创建待确认画像提案 #${proposal.id}: ${proposal.diffSummary}。请用户在 dashboard 中查看 diff 并批准后生效。`,
+          `已创建待确认画像提案 #${proposal.id}: ${proposal.diffSummary}。审批链接：${profileProposalUrl(proposal.id)}`,
         );
       },
     );

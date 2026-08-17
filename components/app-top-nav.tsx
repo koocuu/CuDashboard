@@ -13,9 +13,11 @@ const NAV_ITEMS = [
 
 export function AppTopNav({
   proposalCount,
+  holdingProposalCount,
   statsLabel,
 }: {
   proposalCount: number;
+  holdingProposalCount: number;
   statsLabel: string | null;
 }) {
   const pathname = usePathname();
@@ -50,6 +52,17 @@ export function AppTopNav({
             );
           })}
         </nav>
+        {holdingProposalCount > 0 ? (
+          <Link
+            href="/invest"
+            className="relative rounded-lg px-2.5 py-1.5 text-sm text-primary hover:opacity-80"
+          >
+            投资
+            <span className="absolute -right-1 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+              {holdingProposalCount}
+            </span>
+          </Link>
+        ) : null}
 
         {statsLabel && (
           <span className="hidden truncate text-[11px] text-muted-foreground md:inline">

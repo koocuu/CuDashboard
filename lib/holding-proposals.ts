@@ -6,6 +6,11 @@ import {
   storedMonthlyReviewSchema,
   type MonthlyReviewData,
 } from "@/lib/invest-review-template";
+import {
+  allowedHoldingBuckets,
+  assertSnapshotUsesAllowedBuckets,
+} from "@/lib/holding-buckets";
+import { listHoldings } from "@/lib/queries/invest";
 
 export const holdingSnapshotItemSchema = z.object({
   market: z.enum(["cn", "us", "other"]).describe("cn=A股，us=美股，other=黄金/债券/现金等"),
@@ -46,7 +51,21 @@ export async function createMonthlyInvestmentProposal(input: {
 }) {
   if (!/^\d{4}-\d{2}$/.test(input.month)) throw new Error("月份格式必须为 YYYY-MM");
   const snapshot = normalizeHoldingSnapshot(input.snapshot);
+  const current = await listHoldings();
+  // 月度提案不得隐式新建桶；status 近况由 now_md 写入，审计正文不进 status。
+  assertSnapshotUsesAllowedBuckets(snapshot, allowedHoldingBuckets(current));
   const reviewData = storedMonthlyReviewSchema.parse(input.reviewData);
+
+  await db
+    .update(holdingProposals)
+    .set({ status: "rejected", resolvedAt: new Date() })
+    .where(
+      and(
+        eq(holdingProposals.month, input.month),
+        eq(holdingProposals.status, "pending"),
+      ),
+    );
+
   const [proposal] = await db
     .insert(holdingProposals)
     .values({
@@ -60,6 +79,14 @@ export async function createMonthlyInvestmentProposal(input: {
     })
     .returning();
   return proposal;
+}
+
+export async function pendingHoldingProposalCount(): Promise<number> {
+  const rows = await db
+    .select({ id: holdingProposals.id })
+    .from(holdingProposals)
+    .where(eq(holdingProposals.status, "pending"));
+  return rows.length;
 }
 
 export async function listHoldingProposals() {
