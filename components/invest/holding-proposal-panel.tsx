@@ -27,7 +27,7 @@ export function HoldingProposalPanel({
       <div>
         <h2 className="text-sm font-normal text-muted-foreground">持仓更新</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          MCP 提交的完整快照会先在这里确认；批准后同步真实持仓，并生成 status 层投资纪律联动提案。
+          MCP 月度提案会先在这里确认；批准后同步持仓、该月审计，以及可公开的近期状态（今日 + /now）。
         </p>
       </div>
       <div className="space-y-3">
@@ -46,11 +46,11 @@ export function HoldingProposalPanel({
                   <p className="mt-1 text-xs text-muted-foreground">
                     {proposal.sourceName || proposal.source} · {formatDate(proposal.createdAt)}
                   </p>
-                  {review && (
+                  {review ? (
                     <p className="mt-2 text-sm text-muted-foreground">
                       {review.conclusion}
                     </p>
-                  )}
+                  ) : null}
                 </div>
                 <span className="font-mono text-xs text-muted-foreground">
                   {statusText[proposal.status] || proposal.status}
@@ -61,6 +61,16 @@ export function HoldingProposalPanel({
                   <li key={line}>· {line}</li>
                 ))}
               </ul>
+              {review?.now_md ? (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                    本月近况（将写入今日与 /now）
+                  </summary>
+                  <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-6 text-muted-foreground">
+                    {review.now_md}
+                  </pre>
+                </details>
+              ) : null}
               {pending && (
                 <div className="mt-3">
                   <HoldingProposalActions id={proposal.id} />

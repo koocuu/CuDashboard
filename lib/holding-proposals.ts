@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { holdingProposals, holdings, type Holding } from "@/lib/db/schema";
 import {
-  monthlyReviewDataSchema,
+  storedMonthlyReviewSchema,
   type MonthlyReviewData,
 } from "@/lib/invest-review-template";
 
@@ -46,7 +46,7 @@ export async function createMonthlyInvestmentProposal(input: {
 }) {
   if (!/^\d{4}-\d{2}$/.test(input.month)) throw new Error("月份格式必须为 YYYY-MM");
   const snapshot = normalizeHoldingSnapshot(input.snapshot);
-  const reviewData = monthlyReviewDataSchema.parse(input.reviewData);
+  const reviewData = storedMonthlyReviewSchema.parse(input.reviewData);
   const [proposal] = await db
     .insert(holdingProposals)
     .values({
@@ -80,7 +80,7 @@ export function proposalSnapshot(value: unknown) {
 }
 
 export function proposalReviewData(value: unknown): MonthlyReviewData {
-  return monthlyReviewDataSchema.parse(value);
+  return storedMonthlyReviewSchema.parse(value);
 }
 
 function money(value: number) {

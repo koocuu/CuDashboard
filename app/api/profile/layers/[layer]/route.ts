@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveLayer, isValidLayer } from "@/lib/queries/profile";
-import { extractPublicStatusForWebsite } from "@/lib/status-sections";
+import { statusContentForNow } from "@/lib/status-sections";
 import { syncPublicLayerToWebsite } from "@/lib/website-sync";
 
 export const runtime = "nodejs";
@@ -20,7 +20,7 @@ export async function PATCH(
 
   let websiteSync: { ok: boolean; warning?: string; path?: string } | undefined;
   if (layer === "status") {
-    const publicSection = extractPublicStatusForWebsite(content);
+    const publicSection = statusContentForNow(content);
     if (publicSection.trim()) {
       const sync = await syncPublicLayerToWebsite(publicSection);
       websiteSync = sync.ok

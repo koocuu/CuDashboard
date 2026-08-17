@@ -7,7 +7,12 @@ export const monthlyReviewDataSchema = z.object({
   next_month_checks: z.string().trim().min(8).max(6000).describe("下月需要核验的数据、事件和不确定性"),
 });
 
-export type MonthlyReviewData = z.infer<typeof monthlyReviewDataSchema>;
+/** 月度提案落库形态：四段审计 + 可选公开近况。旧提案没有 now_md。 */
+export const storedMonthlyReviewSchema = monthlyReviewDataSchema.extend({
+  now_md: z.string().trim().min(40).max(20000).optional(),
+});
+
+export type MonthlyReviewData = z.infer<typeof storedMonthlyReviewSchema>;
 
 export function renderMonthlyReview(month: string, input: unknown) {
   if (!/^\d{4}-\d{2}$/.test(month)) {

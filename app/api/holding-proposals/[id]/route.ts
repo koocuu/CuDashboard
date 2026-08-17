@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { holdingProposals } from "@/lib/db/schema";
-import { upsertAuditSyncStatusProposal } from "@/lib/audit-status-sync";
+import { saveLayer } from "@/lib/queries/profile";
+import { statusContentForNow } from "@/lib/status-sections";
+import { syncPublicLayerToWebsite } from "@/lib/website-sync";
 import {
   applyHoldingSnapshot,
   getHoldingProposal,
@@ -42,7 +44,7 @@ export async function POST(
   }
 
   if (body.action === "approve") {
-    let linkedStatusProposalId: number | null = null;
+    let websiteSync: { ok: boolean; warning?: string; path?: string } | undefined;
     try {
       await applyHoldingSnapshot(proposal.snapshot);
       if (proposal.month && proposal.reviewData) {
@@ -52,12 +54,17 @@ export async function POST(
           contentMd: renderMonthlyReview(proposal.month, reviewData),
           refreshSnapshot: true,
         });
-        const linked = await upsertAuditSyncStatusProposal({
-          month: proposal.month,
-          conclusion: reviewData.conclusion,
-          triggersAndRules: reviewData.triggers_and_rules,
-        });
-        linkedStatusProposalId = linked.id;
+        const nowMd = reviewData.now_md?.trim();
+        if (nowMd) {
+          await saveLayer("status", nowMd);
+          const payload = statusContentForNow(nowMd);
+          if (payload) {
+            const sync = await syncPublicLayerToWebsite(payload);
+            websiteSync = sync.ok
+              ? { ok: true, path: sync.path }
+              : { ok: false, warning: sync.error };
+          }
+        }
       }
     } catch (error) {
       return NextResponse.json(
@@ -72,7 +79,7 @@ export async function POST(
     return NextResponse.json({
       ok: true,
       status: "approved",
-      linkedStatusProposalId,
+      websiteSync,
     });
   }
 

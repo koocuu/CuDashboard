@@ -50,11 +50,11 @@ npm run dev
 - 项目:作品目录切换单件详情（点击不滚动），与工作事项分开；MCP `get_projects` 同源只读
 - 工作:快速录入、状态流转、轻分类筛选、置顶、组内/跨栏拖拽、行内编辑、软删除
 - 持仓:按 A 股/美股/其他分组维护人民币金额,占总资产比例自动计算;名称、买入逻辑、观察池和结构图可用
-- 投资复盘:由 MCP 提交固定四段月度审计与全量金额持仓,用户批准后同步保存总结和当月快照,并自动生成 `audit-sync` 的 status 层投资纪律联动提案
-- 画像:四层 Markdown(core/status/investing/relationship)、完整版/通用版/自定义分发、一键复制、版本历史、回滚；status 含内部状态与公开状态，公开状态同步网站 /now；超过 35 天未更新时首页眉标提示
+- 投资复盘:由 MCP 一次提交四段月度审计、全量金额持仓和公开近况 `now_md`；用户批准后持仓、审计快照与 status（今日 + /now）同节点生效
+- 画像:四层 Markdown(core/status/investing/relationship)、完整版/通用版/自定义分发、一键复制、版本历史、回滚；status 是唯一公开近况，与 /now 同源；超过 35 天未更新时首页眉标提示
 - Proposal:REST/write token、粘贴更新块、MCP 写入通道,全部需用户 diff 确认
 - Token:read/write token 生成、吊销、最后使用时间
-- MCP:`get_profile` / `list_profile_layers` / `get_projects` / `search_entries` / `propose_profile_update` / `propose_profile_patch` / `propose_monthly_investment_update` / `get_topic_batch`（提交审计后应立刻更新 status）
+- MCP:`get_profile` / `list_profile_layers` / `get_projects` / `search_entries` / `propose_profile_update` / `propose_profile_patch` / `propose_monthly_investment_update` / `get_topic_batch`（月度工具同时提交近况，不必再调 status 更新）
 - 导入导出:`/api/import` JSON 导入,`/api/export` 全量 Markdown ZIP
 - 备份:Vercel Cron 每日全量 Markdown 快照到 GitHub 私库;未配置视为未启用,启用后失败或 48 小时未成功才告警
 - Demo seed:`npm run seed:demo` 导入 `console-seed-data.md` 对应的工作事项、持仓、画像层和一条 pending proposal
@@ -150,5 +150,5 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 - `get_topic_batch`: 读取 topic-radar 最新选题候选（可选 `account=lengjiao|carbon`）；与画像提案无关。
 - `propose_profile_patch`: 局部提案。`add/update/delete` 改 section 内单条；`replace_section` 整节替换（`new_content_md` 须以目标 `##` 开头；section 不存在则追加到层末）。同一调用方连续改同一层会累积到同一个 pending proposal。工具说明含主动识别提示：对话中出现稳定事实/原则/偏好变化时应主动提议，不必等用户要求「更新画像」。
 - `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。同样适用主动识别原则（整层过期或稳定变化时主动提议重写）。
-- `propose_monthly_investment_update`: 提交“全量人民币金额持仓 + 固定四段月度审计”的待确认提案。持仓必须包含 `CASH` 余额项；审计字段固定为 `conclusion`、`triggers_and_rules`、`actions`、`next_month_checks`。用户在投资页批准后，持仓与审计快照同节点生效，并自动生成 `audit-sync` 的 status 联动提案。提交后应立即再调 `propose_profile_update` 更新 status 层。
+- `propose_monthly_investment_update`: 提交全量持仓 + 四段审计 + `now_md` 公开近况。持仓必须包含 `CASH`。`now_md` 由本轮对话策展（先读 `get_profile` / `get_projects`），不是从持仓自动生成；须可公开。用户在投资页批准后，持仓、审计与 status（今日 + /now）同节点生效。不必再调 `propose_profile_update` 写 status。
 - HTTP:`POST /api/profile/proposals`（Bearer write token）用于画像提案；`POST /api/topic-batches` 用于 topic-radar 写入选题备查（不走提案、不进首页主场）。

@@ -12,7 +12,7 @@ export function HoldingProposalActions({ id }: { id: number }) {
     if (
       action === "approve" &&
       !confirm(
-        "批准后将同步完整金额持仓、固化该月审计快照，并生成 status 层投资纪律联动提案。确认继续？",
+        "批准后将同步持仓、该月审计，并把近况写入今日与网站 /now。请确认近况里没有同事真名和未公开业务。",
       )
     ) {
       return;

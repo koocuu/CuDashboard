@@ -45,12 +45,12 @@
 
 ## 3. profile_doc — 四层(core / status / investing / relationship)
 
-status 须含「## 内部状态」与「## 公开状态」；网站 /now 只读公开状态节。
+status 是唯一一份公开近况，与今日、网站 /now 同源。不要写同事真名和未公开业务。
 
 ```json
 [
   { "layer": "core", "content_md": "(待撰写:身份、职业、性格与沟通偏好、人生主线、创作附录。)" },
-  { "layer": "status", "content_md": "## 内部状态\n\n**主线**:…\n\n## 公开状态\n\n---\nseason: 2026 夏\n---\n\n## 在做\n\n…" },
+  { "layer": "status", "content_md": "---\nseason: 2026 夏\nheadline: …\n---\n\n## 在做\n\n…" },
   { "layer": "investing", "content_md": "(待撰写:投资框架、结构、弱点、历程。)" },
   { "layer": "relationship", "content_md": "(待撰写:情感与社交、关系复盘。仅完整版。)" }
 ]

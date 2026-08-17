@@ -12,8 +12,8 @@ export const LAYER_META: Record<
   },
   status: {
     label: "近期状态",
-    desc: "内部状态（纪律与近况）+ 公开状态（同步网站 /now）",
-    target: "内部常更新；公开节策展后同步",
+    desc: "唯一一份公开近况，今日与网站 /now 同源",
+    target: "短文；可含 season/headline frontmatter",
     order: 1,
   },
   investing: {

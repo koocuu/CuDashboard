@@ -4,6 +4,7 @@ import {
   extractInternalStatusForDashboard,
   extractPublicStatusForWebsite,
   parseNowFrontmatter,
+  statusContentForNow,
 } from "./status-sections";
 
 const STATUS = `## 内部状态
@@ -52,4 +53,21 @@ test("parseNowFrontmatter splits headline from body", () => {
   assert.equal(parsed.headline, "让个人系统稳定产出，而不是继续加零件");
   assert.match(parsed.body, /^## 在做/m);
   assert.match(parsed.body, /## 在写/);
+});
+
+test("statusContentForNow prefers 公开状态 and does not leak 内部状态", () => {
+  const now = statusContentForNow(STATUS);
+  assert.match(now, /## 在做/);
+  assert.doesNotMatch(now, /\*\*主线\*\*/);
+});
+
+test("statusContentForNow uses the whole layer when there is no split", () => {
+  const single = `---\nseason: 2026 夏\n---\n\n## 在做\n\n推进一个 SDK。\n`;
+  const now = statusContentForNow(single);
+  assert.match(now, /推进一个 SDK/);
+});
+
+test("statusContentForNow stays empty if only 内部状态 exists", () => {
+  const onlyInternal = `## 内部状态\n\n**主线**: 别上网站。\n`;
+  assert.equal(statusContentForNow(onlyInternal), "");
 });

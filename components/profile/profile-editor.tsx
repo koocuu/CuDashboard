@@ -40,7 +40,7 @@ export function ProfileEditor({ layer, meta, initialContent, version }: Props) {
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 1500);
         if (data.websiteSync?.ok) {
-          setSyncNote(`已同步公开状态 → ${data.websiteSync.path || "/now"}`);
+          setSyncNote(`已同步 /now → ${data.websiteSync.path || "/now"}`);
         } else if (data.websiteSync?.warning) {
           setSyncNote(data.websiteSync.warning);
         }
@@ -95,8 +95,11 @@ export function ProfileEditor({ layer, meta, initialContent, version }: Props) {
           />
           {layer === "status" && (
             <p className="text-xs text-muted-foreground">
-              请保持「## 内部状态」与「## 公开状态」两节。「公开状态」保存后同步到网站{" "}
-              <span className="font-mono">/zh/now/</span>。
+              这一层就是公开近况，保存后同步到网站{" "}
+              <span className="font-mono">/zh/now/</span>
+              。只写可公开的阶段、技术栈、作品和创作方向，不要写同事真名、具体业务、持仓金额。frontmatter 可加可选{" "}
+              <span className="font-mono">headline</span>
+              ，会显示在网站首页的此刻一行。
             </p>
           )}
           {syncNote && (

@@ -1,8 +1,9 @@
 /**
- * Sync status 层「公开状态」节 to the personal website repo (/now).
+ * Sync status 近况 to the personal website repo (/now).
  * Uses a dedicated GitHub token/repo (not the daily backup credentials).
  * Writes via Contents API (single-file PUT) — friendlier for fine-grained PATs
  * than the Git Data /git/trees flow.
+ * Optional frontmatter `headline` is shown as the homepage Now one-liner.
  */
 
 const API = "https://api.github.com";
@@ -22,7 +23,7 @@ export type WebsiteSyncResult =
   | { ok: false; error: string };
 
 /**
- * Commit「公开状态」节 markdown to the website repo.
+ * Commit status 近况 markdown to the website repo.
  * Content should be the full /now file body (frontmatter + ## sections).
  */
 export async function syncPublicLayerToWebsite(
@@ -50,7 +51,7 @@ export async function syncPublicLayerToWebsite(
       branch,
       path,
       content,
-      message: "content: sync /now from Console status 公开状态",
+      message: "content: sync /now from Console status",
     });
     return { ok: true, path };
   } catch (error) {

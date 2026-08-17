@@ -1,7 +1,13 @@
-/** status 层固定两节：内部状态 / 公开状态 */
+/** status 层就是公开近况：今日与网站 /now 读同一份。旧稿可能仍含「内部状态 / 公开状态」两节。 */
 
 export const STATUS_INTERNAL_HEADING = "内部状态";
 export const STATUS_PUBLIC_HEADING = "公开状态";
+
+export const STATUS_PUBLIC_WRITE_RULE =
+  "status 是唯一一份近期状态，今日页与网站 /now 读同一份。只写可公开内容：阶段、技术栈、已上线作品、创作方向。不要写同事真名、具体业务线、未公开的公司内部事项、持仓金额、情感关系细节。工作可以写「完成了某 SDK / 共创工具第一阶段」，不要写客户名或内部称呼。";
+
+export const MONTHLY_NOW_SOURCE_RULE =
+  "now_md 来自本轮月度对话策展：先 get_profile(status) 和 get_projects，再改写成可公开的近况。不要从持仓快照或工作台账自动拼装，也不要把审计结论、金额、触发线写进近况。建议保留可选 frontmatter（season、headline）和 ## 在做 / ## 在写 / ## 在想。";
 
 const SECTION_RE = (title: string) =>
   new RegExp(
@@ -42,7 +48,18 @@ export function buildStatusLayerContent(internal: string, publicSection: string)
   return `${parts.join("\n").trim()}\n`;
 }
 
-/** 供 /now 同步：只取公开状态节；无节则空。 */
+/** 供 /now 与今日：优先旧稿「公开状态」节；没有分节则整层就是近况。
+ *  只有「内部状态」、没有公开节时返回空，避免把旧内部稿推到网站。
+ */
+export function statusContentForNow(statusMd: string): string {
+  const pub = extractPublicStatusForWebsite(statusMd);
+  if (pub.trim()) return pub.trim();
+  const text = statusMd.replace(/\r\n/g, "\n");
+  if (SECTION_RE(STATUS_INTERNAL_HEADING).test(text)) return "";
+  return text.trim();
+}
+
+/** 旧稿公开状态节；无节则空。新稿请用 statusContentForNow。 */
 export function extractPublicStatusForWebsite(statusMd: string): string {
   return extractMarkdownH2Section(statusMd, STATUS_PUBLIC_HEADING);
 }

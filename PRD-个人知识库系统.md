@@ -1,7 +1,7 @@
 # PRD v2(定稿):个人画像 RAG + 人生状态 Dashboard(代号:Console)
 
 版本:v2.2(取代 v1.0,范围大幅收缩,以本文档为准)
-实施口径更新:2026-08-13(信息架构改为 今日 / 项目 / 画像；选题降为备查；作品墙可被 AI 读取；台账季节性；作品不分在做/上线/暂停)
+实施口径更新:2026-08-17(近期状态只留一份公开近况；月度审计同时提交 now_md)
 面向读者:AI 开发工具(Codex / Claude Code / Cursor)及开发者本人
 
 ---
@@ -133,7 +133,7 @@ v1 中的 trades / ideas / topics / lore_cards / workouts / decisions 表**全�
 | 层 | 内容 | 目标长度 |
 |---|---|---|
 | core | 身份、职业、性格与沟通偏好、人生主线；创作附录并入末尾 | ~2000 字 |
-| status | 「内部状态」(纪律与近况，AI 默认可读) + 「公开状态」(策展后同步 koocuu.com /now) | 内部常更；公开短文 |
+| status | 唯一一份公开近况（今日 + koocuu.com /now 同源）。只写可公开的阶段/技术栈/作品/创作；同事真名、具体业务、持仓金额、情感细节分别写在 core / investing / relationship | 短文 |
 | investing | 投资框架、持仓结构、行为弱点、AI 刹车角色；投资历程并入末尾 | ~1500 字 |
 | relationship | 情感与社交细节、关系复盘(原 private；仅完整版分发) | 按需 |
 
@@ -145,7 +145,7 @@ v1 中的 trades / ideas / topics / lore_cards / workouts / decisions 表**全�
 - **通用版** = core + status + investing，排除 relationship
 - MCP `get_profile` 不传 layers 时返回权限内全部四层，不做默认收窄
 - 分发页可自由勾选层组合;返回内容头部自动附一行使用说明与生成日期
-- 网站 /now 只同步 status「公开状态」节，与分发勾选无关
+- 网站 /now 同步 status 近况（旧稿若仍分两节则只同步「公开状态」），与分发勾选无关
 
 ### 5.4 读取通道
 
@@ -169,7 +169,7 @@ PROFILE_UPDATE>>>
 
 解析:提取包裹块;`---` 前为元信息(layer 必填);格式非法给出具体错误提示。
 
-3. **MCP Server(Phase 3)**:`get_profile` / `list_profile_layers` / `get_projects` / `search_entries` / `propose_profile_patch` / `propose_profile_update` / `propose_monthly_investment_update` / `get_topic_batch`。画像和投资写入均先创建待确认提案。`get_projects` 只读作品墙，不写入画像。`propose_profile_patch` 用于按二级标题和条目标题做局部增删改；同一调用方连续修改同一层时累积到同一个 pending proposal，其他来源已有 pending 时拒绝自动合并。画像写入工具的 description 含「主动识别」指令：对话中出现值得长期记住的稳定事实/原则/偏好变化时，AI 应主动提议 patch 或整层更新，不必等用户明确要求；仍以 dashboard 人工批准为最终把关。
+3. **MCP Server(Phase 3)**:`get_profile` / `list_profile_layers` / `get_projects` / `search_entries` / `propose_profile_patch` / `propose_profile_update` / `propose_monthly_investment_update` / `get_topic_batch`。画像和投资写入均先创建待确认提案。`get_projects` 只读作品墙，不写入画像。`propose_monthly_investment_update` 一次提交持仓、四段审计和 `now_md`（策展过的公开近况，不是从持仓/台账自动生成）；投资页一键批准后同一节点写入持仓、审计与 status。月度之外改近况仍走 status 提案。`propose_profile_patch` 用于按二级标题和条目标题做局部增删改；同一调用方连续修改同一层时累积到同一个 pending proposal，其他来源已有 pending 时拒绝自动合并。画像写入工具的 description 含「主动识别」指令与 status 公开写作约束。
 
 ### 5.6 确认流程
 
@@ -183,7 +183,7 @@ PROFILE_UPDATE>>>
 
 顶栏:今日 / 项目 / 画像。选题和投资不进导航。
 
-1. **近期状态**:渲染画像 `status`「公开状态」节（去掉 frontmatter），与 koocuu.com `/now` 同源。保存或批准 status 后同步到网站仓库。内部状态只在画像 / MCP，不出现在今日。月度审计只改内部「投资」段，不自动改 /now。
+1. **近期状态**:渲染画像 `status`（去掉 frontmatter），与 koocuu.com `/now` 同源。保存、批准 status 提案、或批准带 `now_md` 的月度审计后同步到网站。隐私靠写作约束，不再分内部/公开两节。
 2. **待确认**:有 pending proposal 时显示,点击进确认页
 3. **手头的事**:忙时(有进行中/排期/置顶)台账占主位；闲时保留录入框,文案提示可以不管。无逾期语言
 4. **仓位摘要**:持仓数 + 结构迷你图,点击进投资页
@@ -204,14 +204,14 @@ PROFILE_UPDATE>>>
 - 总资产包含显式现金余额;环图切片合计 100%,中心显示非现金已投资比例
 - 观察池分区(status=watching):记录想买理由,供事后验证冲动
 - 名称和金额可手动修正;正式月更走 MCP 固定模板提案
-- 月度审计固定四段:本月结论、触发与纪律、本月动作、下月核验;批准持仓提案时固化同节点快照
+- 月度审计固定四段:本月结论、触发与纪律、本月动作、下月核验；同一次 MCP 还提交 `now_md` 公开近况。投资页批准后持仓、审计快照与 status 同一节点生效
 
 ### 6.4 作品墙
 
 - 独立于 work_items。不分在做/上线/暂停。领域仅作轻标签：个人 / 工作 / 写作
 - 字段:名称、slug、一句话、线上地址、仓库、可选 skill 名
 - 可视化：大字目录切换当前作品，下方只展示这一件详情；点击不滚动。人和 MCP `get_projects` 读同一份
-- 不自动生成画像；近况更新仍走提案策展
+- 不自动生成画像；近况由对话策展，月度审计时与持仓一起提交
 
 ### 6.5 选题(备查)
 

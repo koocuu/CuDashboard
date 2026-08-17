@@ -14,7 +14,7 @@ import {
   WORK_CATEGORY_ALL,
   WORK_CATEGORY_FILTER_COOKIE,
 } from "@/lib/work-category-filter";
-import { extractPublicStatusForWebsite, parseNowFrontmatter } from "@/lib/status-sections";
+import { parseNowFrontmatter, statusContentForNow } from "@/lib/status-sections";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +48,7 @@ export default async function DashboardPage() {
     ]);
 
   const statusDoc = layers.find((layer) => layer.layer === "status");
-  const publicRaw = extractPublicStatusForWebsite(statusDoc?.contentMd ?? "");
+  const publicRaw = statusContentForNow(statusDoc?.contentMd ?? "");
   const { body: statusMd, headline: nowHeadline } = parseNowFrontmatter(publicRaw);
   const { preview: statusPreview, rest: statusRest } =
     splitStatusPreview(statusMd);
@@ -138,7 +138,7 @@ export default async function DashboardPage() {
               </>
             ) : (
               <p className="text-sm leading-7 text-muted-foreground">
-                还没有公开近况。去画像 status 的「公开状态」节写，保存后会同步到网站
+                还没有近况。去画像 status 写一份可公开的近期状态，或等月度审计一起提交。保存后会同步到网站
                 /now。
               </p>
             )}

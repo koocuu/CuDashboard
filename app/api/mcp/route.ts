@@ -18,6 +18,10 @@ import {
 } from "@/lib/holding-proposals";
 import { listHoldings } from "@/lib/queries/invest";
 import { monthlyReviewDataSchema } from "@/lib/invest-review-template";
+import {
+  MONTHLY_NOW_SOURCE_RULE,
+  STATUS_PUBLIC_WRITE_RULE,
+} from "@/lib/status-sections";
 import { createProfilePatchProposal } from "@/lib/profile-patch-proposals";
 import { LAYER_META, LAYER_ORDER } from "@/lib/profile-meta";
 import { PROFILE_LAYERS, type ProfileLayer } from "@/lib/db/schema";
@@ -46,7 +50,9 @@ const mcpHandler = createMcpHandler(
       {
         title: "Get Profile",
         description:
-          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/status/investing/relationship);不传则返回该 token 权限内的全部四层。MCP 内部不做默认收窄,分级只发生在是否连接此 MCP。status 含「内部状态」与「公开状态」两节。当前 coding 作品列表不在画像层，请另调 get_projects。",
+          "读取用户的个人画像 Markdown。参数 layers 可选,用逗号指定层名(core/status/investing/relationship);不传则返回该 token 权限内的全部四层。MCP 内部不做默认收窄,分级只发生在是否连接此 MCP。status 是唯一一份近期状态，与今日页和网站 /now 同源；" +
+          STATUS_PUBLIC_WRITE_RULE +
+          " 当前 coding 作品列表不在画像层，请另调 get_projects。",
         inputSchema: {
           layers: z
             .string()
@@ -164,7 +170,11 @@ const mcpHandler = createMcpHandler(
       {
         title: "Propose Monthly Investment Update",
         description:
-          "提交一份固定格式的月度投资更新提案：全量人民币金额持仓 + 四段月度审计。工具只创建待确认提案；用户在 dashboard 投资页批准后，系统才同步持仓、按金额计算占比并固化同一节点的月度快照。holdings 必须包含全部资产并显式包含 symbol=CASH 的现金/余额；未列出的旧活跃仓位会被移出。需要 write 权限。提交本提案后,应立即基于审计结论(conclusion、triggers_and_rules)调用 propose_profile_update 更新 status 层画像,同步本月纪律状态;这是月度审计流程的固定第二步,无需用户提醒。",
+          "提交一份月度更新提案：全量人民币金额持仓 + 四段月度审计 + 一份可公开的近期状态。工具只创建待确认提案；用户在 dashboard 投资页批准后，系统才同步持仓、固化该月审计快照，并把 now_md 写入 status（今日与网站 /now 同一份）。holdings 必须包含全部资产并显式包含 symbol=CASH 的现金/余额；未列出的旧活跃仓位会被移出。需要 write 权限。" +
+          MONTHLY_NOW_SOURCE_RULE +
+          " " +
+          STATUS_PUBLIC_WRITE_RULE +
+          " 不必再另调 propose_profile_update 写 status。",
         inputSchema: {
           month: z
             .string()
@@ -175,11 +185,20 @@ const mcpHandler = createMcpHandler(
             .min(1)
             .describe("当前全部资产的完整快照。填写 amount_cny，不填写比例；必须包含现金/余额。"),
           review: monthlyReviewDataSchema.describe(
-            "固定四段审计：conclusion、triggers_and_rules、actions、next_month_checks。actions 必须区分建议与已执行。",
+            "固定四段审计：conclusion、triggers_and_rules、actions、next_month_checks。actions 必须区分建议与已执行。这些写在投资复盘里，不要原样贴进 now_md。",
           ),
+          now_md: z
+            .string()
+            .trim()
+            .min(40)
+            .max(20000)
+            .describe(
+              "本月公开近况全文，批准后覆盖 status 并同步 /now。先 get_profile(status) 与 get_projects 再改写。" +
+                STATUS_PUBLIC_WRITE_RULE,
+            ),
         },
       },
-      async ({ month, holdings, review }, extra) => {
+      async ({ month, holdings, review, now_md }, extra) => {
         const scopes = extra.authInfo?.scopes ?? [];
         if (!scopes.includes("write")) {
           return textResult("错误：此 token 无写权限，无法提交持仓更新提案。", true);
@@ -192,14 +211,14 @@ const mcpHandler = createMcpHandler(
           const proposal = await createMonthlyInvestmentProposal({
             month,
             snapshot,
-            reviewData: review,
+            reviewData: { ...review, now_md },
             sourceName:
               typeof extra.authInfo?.extra?.tokenName === "string"
                 ? extra.authInfo.extra.tokenName
                 : "mcp",
           });
           return textResult(
-            `已创建 ${month} 月度投资提案 #${proposal.id}：${diff.join("；")}。请用户在 dashboard 投资页确认；批准后持仓和月度审计会在同一节点生效，并自动生成 status 层投资纪律联动提案。下一步请立即调用 propose_profile_update 更新 status 层。`,
+            `已创建 ${month} 月度提案 #${proposal.id}：${diff.join("；")}。请用户在 dashboard 投资页确认近况是否可公开；批准后持仓、月度审计与近期状态（今日 + /now）同一节点生效。不必再调 propose_profile_update 写 status。`,
           );
         } catch (error) {
           return textResult(
@@ -215,15 +234,15 @@ const mcpHandler = createMcpHandler(
       {
         title: "Propose Profile Patch",
         description:
-          "对画像某一层做局部提案：可改 section 内单条(add/update/delete)，或整节替换(replace_section)。不需要重发整层 Markdown。用 section 精确定位 ## 二级标题；条目操作用 anchor 匹配 ### / **标题** / **标题**: 正文。replace_section 的 new_content_md 须含完整 section（以目标 ## 标题开头）；若 section 不存在则追加到层末。第一次调用创建 pending proposal；同一调用方继续修改同一层时累积到同一提案。不会直接写入画像。需要 write 权限。主动识别提示:当对话中出现值得长期记住的稳定事实、原则性判断、或明确的偏好/状态变化时(而非临时性话题或一次性信息),应主动调用本工具提议记录,不必等待用户明确要求'更新画像'。判断标准:这条信息如果三个月后被问起,用户是否会希望 AI 已经知道——如果是,值得提议;如果只是当下这句话的临时上下文,不必提议。提议后仍需用户在 dashboard 批准才生效,不必因'可能不重要'而犹豫是否提议,人工审核会做最终把关。",
+          "对画像某一层做局部提案：可改 section 内单条(add/update/delete)，或整节替换(replace_section)。不需要重发整层 Markdown。用 section 精确定位 ## 二级标题；条目操作用 anchor 匹配 ### / **标题** / **标题**: 正文。replace_section 的 new_content_md 须含完整 section（以目标 ## 标题开头）；若 section 不存在则追加到层末。第一次调用创建 pending proposal；同一调用方继续修改同一层时累积到同一提案。不会直接写入画像。需要 write 权限。改 status 时遵守公开近况规则（与 /now 同源，勿写同事真名与未公开业务）。主动识别提示:当对话中出现值得长期记住的稳定事实、原则性判断、或明确的偏好/状态变化时(而非临时性话题或一次性信息),应主动调用本工具提议记录,不必等待用户明确要求'更新画像'。判断标准:这条信息如果三个月后被问起,用户是否会希望 AI 已经知道——如果是,值得提议;如果只是当下这句话的临时上下文,不必提议。提议后仍需用户在 dashboard 批准才生效,不必因'可能不重要'而犹豫是否提议,人工审核会做最终把关。",
         inputSchema: {
           layer: z
             .enum(PROFILE_LAYER_ENUM)
-            .describe("目标画像层:core/status/investing/relationship。"),
+            .describe("目标画像层:core/status/investing/relationship。改 status 会在批准后同步 /now。"),
           section: z
             .string()
             .min(1)
-            .describe('二级标题的纯文本，如 "情感复盘记录" 或 "内部状态"，按完整文本精确匹配。'),
+            .describe('二级标题的纯文本，如 "情感复盘记录" 或 "在做"，按完整文本精确匹配。'),
           operation: z
             .enum(["add", "update", "delete", "replace_section"])
             .describe(
@@ -300,7 +319,8 @@ const mcpHandler = createMcpHandler(
           layer: z
             .enum(PROFILE_LAYER_ENUM)
             .describe(
-              "目标画像层:core/status/investing/relationship。网站 /now 内容写在 status 层的「公开状态」节，批准 status 后同步。",
+              "目标画像层:core/status/investing/relationship。status 整层会同步到网站 /now。" +
+              STATUS_PUBLIC_WRITE_RULE,
             ),
           content_md: z
             .string()
