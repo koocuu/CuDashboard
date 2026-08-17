@@ -9,7 +9,14 @@ const SECTION_RE = (title: string) =>
     "m",
   );
 
-/** 提取 `## {title}` 节正文（不含标题行）；找不到返回空串。 */
+const STATUS_SIBLING_RE = new RegExp(
+  `^##\\s+(?:${STATUS_INTERNAL_HEADING}|${STATUS_PUBLIC_HEADING})\\s*$`,
+  "m",
+);
+
+/** 提取 `## {title}` 节正文（不含标题行）；找不到返回空串。
+ *  只在「内部状态 / 公开状态」这两个兄弟标题处截断，保留节内的 ## 在做 / 在写。
+ */
 export function extractMarkdownH2Section(content: string, title: string): string {
   const text = content.replace(/\r\n/g, "\n");
   const heading = SECTION_RE(title);
@@ -17,7 +24,7 @@ export function extractMarkdownH2Section(content: string, title: string): string
   if (!match || match.index === undefined) return "";
   const start = match.index + match[0].length;
   const rest = text.slice(start);
-  const next = rest.search(/^##\s+/m);
+  const next = rest.search(STATUS_SIBLING_RE);
   const body = (next < 0 ? rest : rest.slice(0, next)).replace(/^\n+/, "").trimEnd();
   return body.trim();
 }
@@ -40,8 +47,24 @@ export function extractPublicStatusForWebsite(statusMd: string): string {
   return extractMarkdownH2Section(statusMd, STATUS_PUBLIC_HEADING);
 }
 
-/** 首页状态卡优先展示内部状态；若无分节则回退全文。 */
+/** 画像页 / MCP 用的内部状态；若无分节则回退全文。 */
 export function extractInternalStatusForDashboard(statusMd: string): string {
   const internal = extractMarkdownH2Section(statusMd, STATUS_INTERNAL_HEADING);
   return internal || statusMd.trim();
+}
+
+/** 公开状态节里的 YAML frontmatter（season / headline）与正文分开。 */
+export function parseNowFrontmatter(publicSection: string): {
+  body: string;
+  headline: string | null;
+  season: string | null;
+} {
+  const text = publicSection.replace(/\r\n/g, "\n").trim();
+  const match = text.match(/^---\n([\s\S]*?)\n---(?:\n|$)([\s\S]*)$/);
+  if (!match) return { body: text, headline: null, season: null };
+  const fm = match[1];
+  const body = match[2].trim();
+  const headline = fm.match(/^headline\s*:\s*(.+)$/m)?.[1]?.trim() ?? null;
+  const season = fm.match(/^season\s*:\s*(.+)$/m)?.[1]?.trim() ?? null;
+  return { body, headline, season };
 }

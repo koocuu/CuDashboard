@@ -14,7 +14,7 @@ import {
   WORK_CATEGORY_ALL,
   WORK_CATEGORY_FILTER_COOKIE,
 } from "@/lib/work-category-filter";
-import { extractInternalStatusForDashboard } from "@/lib/status-sections";
+import { extractPublicStatusForWebsite, parseNowFrontmatter } from "@/lib/status-sections";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +48,8 @@ export default async function DashboardPage() {
     ]);
 
   const statusDoc = layers.find((layer) => layer.layer === "status");
-  const statusMd = extractInternalStatusForDashboard(
-    statusDoc?.contentMd ?? "还没有状态层内容。",
-  );
+  const publicRaw = extractPublicStatusForWebsite(statusDoc?.contentMd ?? "");
+  const { body: statusMd, headline: nowHeadline } = parseNowFrontmatter(publicRaw);
   const { preview: statusPreview, rest: statusRest } =
     splitStatusPreview(statusMd);
   const statusAgeDays = statusDoc?.updatedAt
@@ -90,37 +89,58 @@ export default async function DashboardPage() {
               <h1 className="text-sm font-normal text-muted-foreground">
                 近期状态
               </h1>
-              {statusStale ? (
-                <span
-                  className="shrink-0 text-[11px]"
-                  style={{ color: "#9A938A" }}
+              <div className="flex shrink-0 items-center gap-3 text-[11px] text-muted-foreground">
+                <a
+                  href="https://koocuu.com/zh/now/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-foreground"
                 >
-                  上次更新 {statusAgeDays} 天前
-                </span>
-              ) : (
-                <span className="shrink-0 text-[11px] text-muted-foreground">
-                  {statusDoc?.updatedAt
-                    ? formatDate(statusDoc.updatedAt, {
-                        month: "2-digit",
-                        day: "2-digit",
-                      }).replace(/\//g, "-")
-                    : "--"}{" "}
-                  · v{statusDoc?.version ?? 1}
-                </span>
-              )}
+                  /now →
+                </a>
+                {statusStale ? (
+                  <span style={{ color: "#9A938A" }}>
+                    上次更新 {statusAgeDays} 天前
+                  </span>
+                ) : (
+                  <span>
+                    {statusDoc?.updatedAt
+                      ? formatDate(statusDoc.updatedAt, {
+                          month: "2-digit",
+                          day: "2-digit",
+                        }).replace(/\//g, "-")
+                      : "--"}{" "}
+                    · v{statusDoc?.version ?? 1}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="text-[15px] leading-7">
-              <MarkdownLite content={statusPreview} />
-            </div>
-            {statusRest && (
-              <details className="group mt-3 border-t pt-3">
-                <summary className="cursor-pointer list-none text-sm text-muted-foreground hover:text-foreground">
-                  展开全文 →
-                </summary>
-                <div className="mt-3 text-[15px] leading-7">
-                  <MarkdownLite content={statusRest} />
+            {statusMd || nowHeadline ? (
+              <>
+                {nowHeadline ? (
+                  <p className="mb-3 text-[15px] leading-7 text-muted-foreground">
+                    {nowHeadline}
+                  </p>
+                ) : null}
+                <div className="text-[15px] leading-7">
+                  <MarkdownLite content={statusPreview} />
                 </div>
-              </details>
+                {statusRest && (
+                  <details className="group mt-3 border-t pt-3">
+                    <summary className="cursor-pointer list-none text-sm text-muted-foreground hover:text-foreground">
+                      展开全文 →
+                    </summary>
+                    <div className="mt-3 text-[15px] leading-7">
+                      <MarkdownLite content={statusRest} />
+                    </div>
+                  </details>
+                )}
+              </>
+            ) : (
+              <p className="text-sm leading-7 text-muted-foreground">
+                还没有公开近况。去画像 status 的「公开状态」节写，保存后会同步到网站
+                /now。
+              </p>
             )}
           </section>
 
