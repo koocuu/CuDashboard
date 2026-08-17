@@ -13,7 +13,7 @@ export const PROFILE_UPDATE_PROTOCOL = `## 画像更新协议
 
 layer 合法取值: core/status/investing/relationship
 
-status 层就是公开近况，与今日页、网站 /now 同源。只写可公开内容，不要写同事真名、具体业务、持仓金额。可含 frontmatter（season、headline）和 ## 在做 / ## 在写 / ## 在想。
+status 层就是公开近况，与今日页、网站 /now 同源。在现稿上增删改，不要从空白重写。只写可公开内容，不要写同事真名、具体业务、持仓金额。可含 frontmatter（season、headline）和 ## 在做 / ## 在写 / ## 在想。
 
 可整体复制的字面模板:
 

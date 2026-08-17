@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { holdingProposals } from "@/lib/db/schema";
-import { saveLayer } from "@/lib/queries/profile";
+import { getLayer, saveLayer } from "@/lib/queries/profile";
 import { statusContentForNow } from "@/lib/status-sections";
+import { mergeNowRevision } from "@/lib/now-revision";
 import { syncPublicLayerToWebsite } from "@/lib/website-sync";
 import {
   applyHoldingSnapshot,
@@ -64,8 +65,10 @@ export async function POST(
         });
         const nowMd = reviewData.now_md?.trim();
         if (nowMd) {
-          await saveLayer("status", nowMd);
-          const payload = statusContentForNow(nowMd);
+          const currentStatus = await getLayer("status");
+          const mergedNow = mergeNowRevision(currentStatus, nowMd);
+          await saveLayer("status", mergedNow);
+          const payload = statusContentForNow(mergedNow);
           if (payload) {
             const sync = await syncPublicLayerToWebsite(payload);
             websiteSync = sync.ok

@@ -50,7 +50,7 @@ npm run dev
 - 项目:作品目录切换单件详情（点击不滚动），与工作事项分开；MCP `get_projects` 同源只读
 - 工作:快速录入、状态流转、轻分类筛选、置顶、组内/跨栏拖拽、行内编辑、软删除
 - 持仓:按 A 股/美股/其他分组维护人民币金额,占总资产比例自动计算;名称、买入逻辑、观察池和结构图可用
-- 投资复盘:由 MCP 一次提交四段月度审计、全量金额持仓和公开近况 `now_md`；用户批准后持仓、审计快照与 status（今日 + /now）同节点生效
+- 投资复盘:由 MCP 一次提交四段月度审计、全量金额持仓和公开近况 `now_md`；`now_md` 在现稿上合并后写入今日与 /now
 - 画像:四层 Markdown(core/status/investing/relationship)、完整版/通用版/自定义分发、一键复制、版本历史、回滚；status 是唯一公开近况，与 /now 同源；超过 35 天未更新时首页眉标提示
 - Proposal:REST/write token、粘贴更新块、MCP 写入通道,全部需用户 diff 确认
 - Token:read/write token 生成、吊销、最后使用时间
@@ -151,5 +151,5 @@ Claude Code / Cursor / 脚本可继续使用 Bearer token:在 dashboard 的 `画
 - `propose_profile_patch`: 局部提案。`add/update/delete` 改 section 内单条；`replace_section` 整节替换（`new_content_md` 须以目标 `##` 开头；section 不存在则追加到层末）。同一调用方连续改同一层会累积到同一个 pending proposal。工具说明含主动识别提示：对话中出现稳定事实/原则/偏好变化时应主动提议，不必等用户要求「更新画像」。
 - `propose_profile_update`: 提交画像修改的待确认提案,不会直接写入画像。同样适用主动识别原则（整层过期或稳定变化时主动提议重写）。
 - `get_holding_buckets`: 固定 8 个大类桶 symbol（`CN-CPO` / `CN-MEM` / `CN-EQUIP` / `US-SEMI` / `US-MEM` / `QQQ` / `GOLD` / `CASH`）。月度提案必须按此合并，禁止按基金/个股拆 item。白名单不随当前持仓行变化。
-- `propose_monthly_investment_update`: 提交全量持仓 + 四段审计 + `now_md` 公开近况。持仓 symbol 必须在 `get_holding_buckets` 白名单内。`now_md` 由对话策展，不是从持仓自动生成。批准后持仓、审计与 status 同节点生效。审计正文不进 status。返回文本含审批直达链接。
+- `propose_monthly_investment_update`: 提交全量持仓 + 四段审计 + `now_md` 公开近况。持仓 symbol 必须在 `get_holding_buckets` 白名单内。`now_md` 在现稿上增删，不是从持仓自动生成，也不是空白重写。批准时与当前 status 合并后写入 /now。审计正文不进 status。返回文本含审批直达链接。
 - HTTP:`POST /api/profile/proposals`（Bearer write token）用于画像提案；`POST /api/topic-batches` 用于 topic-radar 写入选题备查（不走提案、不进首页主场）。

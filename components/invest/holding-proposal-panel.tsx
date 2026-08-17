@@ -8,6 +8,7 @@ import { isProposalStale } from "@/lib/proposal-freshness";
 import { formatDate } from "@/lib/utils";
 import { HighlightOnMount } from "@/components/highlight-on-mount";
 import { HoldingProposalActions } from "./holding-proposal-actions";
+import { describeNowMerge, mergeNowRevision } from "@/lib/now-revision";
 
 const statusText: Record<string, string> = {
   pending: "待确认",
@@ -18,10 +19,12 @@ const statusText: Record<string, string> = {
 export function HoldingProposalPanel({
   proposals,
   currentHoldings,
+  currentStatusMd = "",
   highlightId = null,
 }: {
   proposals: HoldingProposal[];
   currentHoldings: Holding[];
+  currentStatusMd?: string;
   highlightId?: number | null;
 }) {
   if (proposals.length === 0) return null;
@@ -34,7 +37,7 @@ export function HoldingProposalPanel({
       <div>
         <h2 className="text-sm font-normal text-muted-foreground">持仓更新</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          MCP 月度提案会先在这里确认；批准后同步持仓、该月审计，以及可公开的近期状态（今日 + /now）。
+          MCP 月度提案会先在这里确认；批准后同步持仓、该月审计，以及可公开的近期状态（今日 + /now）。近况在现稿上合并：写了的章节覆盖，没写到的章节保留。
         </p>
       </div>
       <div className="space-y-3">
@@ -80,14 +83,7 @@ export function HoldingProposalPanel({
                 ))}
               </ul>
               {review?.now_md ? (
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
-                    本月近况（将写入今日与 /now）
-                  </summary>
-                  <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-6 text-muted-foreground">
-                    {review.now_md}
-                  </pre>
-                </details>
+                <NowRevisionPreview currentStatusMd={currentStatusMd} proposedMd={review.now_md} />
               ) : null}
               {pending && !stale && (
                 <div className="mt-3">
@@ -104,5 +100,36 @@ export function HoldingProposalPanel({
         })}
       </div>
     </section>
+  );
+}
+
+function formatMergeNote(note: ReturnType<typeof describeNowMerge>) {
+  const parts: string[] = [];
+  if (note.replaced.length) parts.push(`改写「${note.replaced.join("」「")}」`);
+  if (note.kept.length) parts.push(`保留「${note.kept.join("」「")}」`);
+  if (note.cleared.length) parts.push(`去掉「${note.cleared.join("」「")}」`);
+  if (note.added.length) parts.push(`新增「${note.added.join("」「")}」`);
+  return parts.join("；") || "与现稿相同";
+}
+
+function NowRevisionPreview({
+  currentStatusMd,
+  proposedMd,
+}: {
+  currentStatusMd: string;
+  proposedMd: string;
+}) {
+  const merged = mergeNowRevision(currentStatusMd, proposedMd);
+  const note = describeNowMerge(currentStatusMd, proposedMd);
+  return (
+    <details className="mt-3">
+      <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+        本月近况（批准后写入今日与 /now）
+      </summary>
+      <p className="mt-2 text-xs text-muted-foreground">{formatMergeNote(note)}</p>
+      <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap text-xs leading-6 text-muted-foreground">
+        {merged}
+      </pre>
+    </details>
   );
 }

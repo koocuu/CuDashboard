@@ -5,7 +5,7 @@ import { buildContextPackage, resolveLayers } from "@/lib/context-builder";
 import { publicOrigin, verifyOAuthAccessToken } from "@/lib/oauth";
 import { searchAll } from "@/lib/queries/search";
 import { createProposal } from "@/lib/proposals";
-import { getAllLayers, isValidLayer } from "@/lib/queries/profile";
+import { getAllLayers, getLayer, isValidLayer } from "@/lib/queries/profile";
 import { getLatestTopicBatch } from "@/lib/queries/topics";
 import { listProjects } from "@/lib/queries/projects";
 import { formatProjectsMarkdown } from "@/lib/projects-display";
@@ -22,6 +22,7 @@ import {
   MONTHLY_NOW_SOURCE_RULE,
   STATUS_PUBLIC_WRITE_RULE,
 } from "@/lib/status-sections";
+import { mergeNowRevision } from "@/lib/now-revision";
 import {
   HOLDING_BUCKET_RULE,
   allowedHoldingBuckets,
@@ -217,7 +218,7 @@ const mcpHandler = createMcpHandler(
             .min(40)
             .max(20000)
             .describe(
-              "本月公开近况全文，批准后覆盖 status 并同步 /now。先 get_profile(status) 与 get_projects 再改写。" +
+              "本月公开近况。在 get_profile(status) 现稿上增删改，批准时与现稿合并后写入 /now：写了的章节覆盖，没写到的章节保留。不要只交一节短稿。" +
                 STATUS_PUBLIC_WRITE_RULE,
             ),
         },
@@ -232,10 +233,12 @@ const mcpHandler = createMcpHandler(
           const snapshot = normalizeHoldingSnapshot(holdings);
           const current = await listHoldings();
           const diff = holdingSnapshotDiff(current, snapshot);
+          const currentStatus = await getLayer("status");
+          const mergedNow = mergeNowRevision(currentStatus, now_md);
           const proposal = await createMonthlyInvestmentProposal({
             month,
             snapshot,
-            reviewData: { ...review, now_md },
+            reviewData: { ...review, now_md: mergedNow },
             sourceName:
               typeof extra.authInfo?.extra?.tokenName === "string"
                 ? extra.authInfo.extra.tokenName
@@ -247,7 +250,7 @@ const mcpHandler = createMcpHandler(
               ? ` 警告：本次提案包含 ${churn.total} 项 item 结构变动（新增 ${churn.added}、移出 ${churn.removed}），请确认是否为有意的分类重构而非粒度错误。`
               : "";
           return textResult(
-            `已创建 ${month} 月度提案 #${proposal.id}：${diff.join("；")}。${warning}审批链接：${holdingProposalUrl(proposal.id)} 。批准后持仓、月度审计与近期状态（今日 + /now）同一节点生效。不必再调 propose_profile_update 写 status。`,
+            `已创建 ${month} 月度提案 #${proposal.id}：${diff.join("；")}。${warning}近况已按现稿合并（没写到的章节会保留）。审批链接：${holdingProposalUrl(proposal.id)} 。批准后持仓、月度审计与近期状态（今日 + /now）同一节点生效。不必再调 propose_profile_update 写 status。`,
           );
         } catch (error) {
           return textResult(

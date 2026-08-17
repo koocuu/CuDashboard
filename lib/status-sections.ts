@@ -7,7 +7,7 @@ export const STATUS_PUBLIC_WRITE_RULE =
   "status 是唯一一份近期状态，今日页与网站 /now 读同一份。只写可公开内容：阶段、技术栈、已上线作品、创作方向。不要写同事真名、具体业务线、未公开的公司内部事项、持仓金额、情感关系细节。工作可以写「完成了某 SDK / 共创工具第一阶段」，不要写客户名或内部称呼。";
 
 export const MONTHLY_NOW_SOURCE_RULE =
-  "now_md 来自本轮月度对话策展：先 get_profile(status) 和 get_projects，再改写成可公开的近况。不要从持仓快照或工作台账自动拼装，也不要把审计结论、金额、触发线写进近况。建议保留可选 frontmatter（season、headline）和 ## 在做 / ## 在写 / ## 在想。";
+  "now_md 必须在现稿上改，不要从空白重写。先 get_profile(status) 和 get_projects。只改本月有变化的段落，可加长、缩短或删掉某一节；没写到的 ## 在做 / 在写 / 在想 会自动保留。不要从持仓快照或工作台账自动拼装，也不要把审计结论、金额、触发线写进近况。可更新 frontmatter（season、headline）。要删掉某一节时，保留该 ## 标题并留空正文。";
 
 const SECTION_RE = (title: string) =>
   new RegExp(

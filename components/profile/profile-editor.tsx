@@ -97,7 +97,7 @@ export function ProfileEditor({ layer, meta, initialContent, version }: Props) {
             <p className="text-xs text-muted-foreground">
               这一层就是公开近况，保存后同步到网站{" "}
               <span className="font-mono">/zh/now/</span>
-              。只写可公开的阶段、技术栈、作品和创作方向，不要写同事真名、具体业务、持仓金额。frontmatter 可加可选{" "}
+              。在现稿上增删即可，不要从空白重写。只写可公开的阶段、技术栈、作品和创作方向，不要写同事真名、具体业务、持仓金额。frontmatter 可加可选{" "}
               <span className="font-mono">headline</span>
               ，会显示在网站首页的此刻一行。
             </p>
