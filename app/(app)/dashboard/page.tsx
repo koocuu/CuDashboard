@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ProjectStrip } from "@/components/dashboard/project-strip";
 import { QuickAdd } from "@/components/quick-add";
 import { MarkdownLite } from "@/components/ui/markdown-lite";
 import { WorkBoard } from "@/components/work/work-board";
@@ -9,7 +8,6 @@ import { buildPositionSlices, donutGradient } from "@/lib/invest-chart";
 import { latestBackupRun } from "@/lib/queries/backup";
 import { investStats, listHoldings } from "@/lib/queries/invest";
 import { getAllLayers, listProposals } from "@/lib/queries/profile";
-import { listProjects } from "@/lib/queries/projects";
 import { listWorkItems } from "@/lib/queries/work";
 import { formatDate, formatRelativeTime } from "@/lib/utils";
 import {
@@ -39,7 +37,7 @@ export default async function DashboardPage() {
     }
   }
 
-  const [workItems, invest, holdings, layers, proposals, backup, projectItems] =
+  const [workItems, invest, holdings, layers, proposals, backup] =
     await Promise.all([
       listWorkItems().catch(logQueryError("work_items", [])),
       investStats().catch(logQueryError("invest_stats", null)),
@@ -47,7 +45,6 @@ export default async function DashboardPage() {
       getAllLayers().catch(logQueryError("profile_layers", [])),
       listProposals().catch(logQueryError("proposals", [])),
       latestBackupRun().catch(logQueryError("backup_runs", null)),
-      listProjects().catch(logQueryError("projects", [])),
     ]);
 
   const statusDoc = layers.find((layer) => layer.layer === "status");
@@ -137,11 +134,6 @@ export default async function DashboardPage() {
               </span>
             </Link>
           )}
-
-          <ProjectStrip
-            projects={projectItems}
-            limit={ledgerBusy ? 4 : 6}
-          />
 
           <section className="border-t pt-4">
             <Link href="/invest" className="block">
