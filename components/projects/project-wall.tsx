@@ -165,7 +165,7 @@ function ProjectDetail({
 
   if (editing) {
     return (
-      <div className="border-t pt-6">
+      <div className="pt-6">
         <ProjectEditor
           item={item}
           onCancel={() => setEditing(false)}
@@ -180,7 +180,7 @@ function ProjectDetail({
   }
 
   return (
-    <article className="relative border-t py-10 md:py-12">
+    <article className="relative py-10 md:py-12">
       <span
         aria-hidden
         className="pointer-events-none absolute right-0 top-6 select-none text-7xl font-medium leading-none md:text-8xl"
